@@ -31,28 +31,31 @@ private:
   Node *m_node_out;
 
 public:
-  void activate() {
-    double in = m_node_in->get_value();
-    std::cout << "In: " << in;
-    double out = tanh(m_weight * in + m_shift);
-    // std::cout << " --> " << out;
-    // out = tanh(out);
-    std::cout << " --> " << out << std::endl;
-    m_node_out->add_to_value(out);
-  }
-
   Connection(Node *node_in, Node *node_out) {
     m_node_in = node_in;
     m_node_out = node_out;
     m_weight = ((double)rand() / RAND_MAX) * 2 - 1;
     m_shift = ((double)rand() / RAND_MAX) * 2 - 1;
-    std::cout << "Weight: " << m_weight << ", shift: " << m_shift << std::endl;
+    // std::cout << "Weight: " << m_weight << ", shift: " << m_shift <<
+    // std::endl;
   }
 
   Connection() {}
+
+  void activate() {
+    double in = m_node_in->get_value();
+    std::cout << "In: " << in;
+    double out = tanh(m_weight * in + m_shift);
+    std::cout << " --> " << out << std::endl;
+    m_node_out->add_to_value(out);
+  }
+
+  void change_node_out(Node *new_node_out) { m_node_out = new_node_out; }
+  Node *get_node_out() { return m_node_out; }
+  Node *get_node_in() { return m_node_in; }
 };
 
-template <size_t NB_IN_NODES, size_t NB_OUT_NODES, size_t MAX_BRAIN_SIZE = 20,
+template <size_t NB_IN_NODES, size_t NB_OUT_NODES, size_t MAX_BRAIN_SIZE = 30,
           size_t MAX_NB_CONNECTIONS = 100>
 class Brain {
 private:
@@ -62,12 +65,6 @@ private:
   size_t m_nb_connections;
 
 public:
-  void init() {
-    for (Node &node : m_nodes) {
-      node.init();
-    }
-  }
-
   Brain(size_t nb_hidden_nodes = 1)
       : m_nb_hidden_nodes(nb_hidden_nodes),
         m_nb_connections(NB_IN_NODES + NB_OUT_NODES) {
@@ -76,7 +73,7 @@ public:
      */
     if (nb_hidden_nodes + NB_IN_NODES + NB_OUT_NODES > MAX_BRAIN_SIZE or
         NB_IN_NODES + NB_OUT_NODES > MAX_NB_CONNECTIONS) {
-      throw std::runtime_error("Size too big for the brain.");
+      throw std::runtime_error("Invalid brain size");
       exit(1);
     }
     for (size_t i = 0; i < NB_IN_NODES; i++) {
@@ -96,6 +93,7 @@ public:
 
     /* Create all the connections:
      * any input or output node should be linked to a hidden node.
+     * This process is random.
      */
     size_t hidden_node_idx;
     for (size_t i = 0; i < NB_IN_NODES; i++) {
@@ -122,14 +120,13 @@ public:
 
   std::array<double, NB_OUT_NODES>
   activate(std::array<double, NB_IN_NODES> input) {
-    init();
+    set_to_zero();
     for (size_t i = 0; i < NB_IN_NODES; i++) {
       m_nodes[i].set_value(input[i]);
     }
     for (size_t i = 0; i < m_nb_connections; i++) {
       m_connections[i].activate();
     }
-    std::cout << "OK" << std::endl;
     std::array<double, NB_OUT_NODES> output;
     for (size_t i = 0; i < NB_OUT_NODES; i++) {
       output[i] = m_nodes[i + NB_IN_NODES].get_value();
@@ -139,22 +136,137 @@ public:
 
   void print() {
     for (size_t i = 0; i < NB_IN_NODES; i++) {
-      std::cout << "(" << m_nodes[i].get_value() <<")";
+      std::cout << "(" << m_nodes[i].get_value() << ")";
     }
     std::cout << std::endl;
     size_t hidden_node_beginning = NB_IN_NODES + NB_OUT_NODES;
     for (size_t i = hidden_node_beginning;
          i < hidden_node_beginning + m_nb_hidden_nodes; i++) {
-      std::cout  << "(" << m_nodes[i].get_value() << ")" ;
+      std::cout << "(" << m_nodes[i].get_value() << ")";
     }
     std::cout << std::endl;
     for (size_t i = NB_IN_NODES; i < hidden_node_beginning; i++) {
-      std::cout << "("  << m_nodes[i].get_value() << ")" ;
+      std::cout << "(" << m_nodes[i].get_value() << ")";
     }
     std::cout << std::endl;
   }
 
-  void add_node() {}
-  void add_connection() {}
-  void mutate() {}
+  void mutate() {
+    size_t rnd = arc4random_uniform(100);
+    if (rnd % 4 == 0) {
+      std::cout << "Random connection created" << std::endl;
+      add_random_connection();
+    }
+    if (rnd % 4 == 1) {
+      std::cout << "Random node created" << std::endl;
+      add_random_node();
+    }
+    if (rnd % 4 == 2) {
+      std::cout << "Random connection changed" << std::endl;
+      change_connection_weight();
+    }
+    if (rnd % 15 == 0) {
+      std::cout << "Random connection removed" << std::endl;
+      remove_random_connection();
+    }
+  }
+
+private:
+  void set_to_zero() {
+    for (Node &node : m_nodes) {
+      node.init();
+    }
+  }
+
+  void add_random_node() {
+    // Node new_node;
+    // m_nodes[NB_IN_NODES + NB_OUT_NODES + m_nb_hidden_nodes] = new_node;
+    if (NB_IN_NODES + NB_OUT_NODES + m_nb_hidden_nodes + 1 > MAX_BRAIN_SIZE) {
+      return;
+    }
+    if (m_nb_connections + 1 > MAX_NB_CONNECTIONS) {
+      return;
+    }
+    Node *addr_new_node =
+        &(m_nodes[NB_IN_NODES + NB_OUT_NODES + m_nb_hidden_nodes]);
+    m_nb_hidden_nodes++;
+    size_t rnd_connection = arc4random_uniform(m_nb_connections);
+    Connection *modified_connection = &(m_connections[rnd_connection]);
+    Node *old_node_out = modified_connection->get_node_out();
+    modified_connection->change_node_out(addr_new_node);
+    Connection new_connection(addr_new_node, old_node_out);
+    m_connections[m_nb_connections] = new_connection;
+    m_nb_connections++;
+    sort_connections();
+  }
+
+  void add_random_connection() {
+    if (m_nb_connections + 1 > MAX_NB_CONNECTIONS) {
+      return;
+    }
+    size_t rnd_node_in_idx =
+        arc4random_uniform(NB_IN_NODES + m_nb_hidden_nodes);
+    size_t rnd_node_out_idx =
+        arc4random_uniform(NB_OUT_NODES + m_nb_hidden_nodes);
+    Node *rnd_node_in = &(m_nodes[rnd_node_in_idx]);
+    Node *rnd_node_out = &(m_nodes[NB_IN_NODES + rnd_node_out_idx]);
+    Connection new_connection(rnd_node_in, rnd_node_out);
+    m_connections[m_nb_connections] = new_connection;
+    m_nb_connections++;
+    if (sort_connections()) {
+      return;
+    }
+    m_nb_connections--;
+  }
+
+  void remove_random_connection() {
+    if (m_nb_connections <= 1) {
+      return;
+    }
+    size_t rnd_connection = arc4random_uniform(m_nb_connections);
+    for (size_t i = rnd_connection; i < m_nb_connections; i++) {
+      m_connections[i] = m_connections[i + 1];
+    }
+    m_nb_connections--;
+  }
+
+  void change_connection_weight() {
+    size_t rnd_connection = arc4random_uniform(m_nb_connections);
+    Connection modified_connection = m_connections[rnd_connection];
+    Connection new_connection(modified_connection.get_node_in(),
+                              modified_connection.get_node_out());
+    m_connections[rnd_connection] = new_connection;
+  }
+
+  bool sort_connections() {
+    std::vector<Connection> connections_to_treat;
+    for (size_t i = 0; i < m_nb_connections; i++) {
+      connections_to_treat.push_back(m_connections[i]);
+    }
+    Connection current_connection;
+    size_t current_idx = 0;
+    size_t nb_tries = 0;
+    while (!connections_to_treat.empty() and nb_tries < m_nb_connections) {
+      current_connection = connections_to_treat[0];
+      connections_to_treat.erase(connections_to_treat.begin());
+      bool is_ordered = true;
+      for (Connection other_connection : connections_to_treat) {
+        if (other_connection.get_node_out() ==
+            current_connection.get_node_in()) {
+          is_ordered = false;
+        }
+      }
+      if (is_ordered) {
+        m_connections[current_idx] = current_connection;
+        current_idx++;
+      } else {
+        connections_to_treat.push_back(current_connection);
+        nb_tries++;
+      }
+    }
+    if (connections_to_treat.empty()) {
+      return true;
+    }
+    return false;
+  }
 };
