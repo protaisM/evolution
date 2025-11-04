@@ -1,0 +1,130 @@
+#pragma once
+
+#include "brain.h"
+
+#include <SFML/Graphics.hpp>
+#include <SFML/Graphics/RenderWindow.hpp>
+#include <array>
+
+struct Color {
+  int r;
+  int g;
+  int b;
+};
+
+inline double rand_pos() { return (double)std::rand() / ((double)RAND_MAX); }
+inline double rand_angle() { return 360 * rand_pos(); }
+
+template <unsigned int NB_IN_NODES, unsigned int NB_OUT_NODES,
+          unsigned int MAX_BRAIN_SIZE, unsigned int MAX_NB_CONNECTIONS>
+class Mouse {
+protected:
+  Brain<NB_IN_NODES, NB_OUT_NODES, MAX_BRAIN_SIZE, MAX_NB_CONNECTIONS> m_brain;
+  // note that positions and velocity is normalised to 1
+  double m_x_pos;
+  double m_y_pos;
+  double m_velocity;
+  // the angle is in [0,360]
+  double m_angle;
+
+  // normalised to 1
+  double m_sight_radius;
+  // in [0,360]
+  double m_max_angle;
+  bool m_is_alive;
+  Color m_color;
+
+public:
+  Mouse(double x, double y, double max_angle, double sight_radius)
+      : m_x_pos(x), m_y_pos(y), m_is_alive(true), m_velocity(rand_pos()),
+        m_max_angle(max_angle), m_angle(rand_angle()),
+        m_sight_radius(sight_radius), m_brain(3) {
+    m_color.r = std::rand() % 255;
+    m_color.g = std::rand() % 255;
+    m_color.b = std::rand() % 255;
+  }
+
+  Mouse(double max_angle, double sight_radius)
+      : m_x_pos(rand_pos()), m_y_pos(rand_pos()), m_is_alive(true),
+        m_velocity(rand_pos()), m_max_angle(max_angle), m_angle(rand_angle()),
+        m_sight_radius(sight_radius), m_brain(3) {
+    m_color.r = std::rand() % 255;
+    m_color.g = std::rand() % 255;
+    m_color.b = std::rand() % 255;
+  }
+
+  Mouse() : m_is_alive(false) {}
+
+  double get_x() const { return m_x_pos; }
+  double get_y() const { return m_y_pos; }
+  double get_angle() const { return m_angle; }
+  bool is_alive() const { return m_is_alive; }
+  void kill() { m_is_alive = false; }
+
+protected:
+  std::array<double, 2> get_next_position(double dt) {
+    std::array<double, 2> pos({m_x_pos, m_y_pos});
+    pos.at(0) += dt * std::cos(m_angle) * m_velocity;
+    pos.at(1) += dt * std::sin(m_angle) * m_velocity;
+    return pos;
+  }
+
+  void update_position(double dt) {
+    // given the new angle and the new velocity, update the position
+    if (!m_is_alive) {
+      std::cerr << "This bird is not alive" << std::endl;
+    }
+    std::array<double, 2> pos(get_next_position(dt));
+    m_x_pos = pos.at(0);
+    m_y_pos = pos.at(1);
+  }
+
+  Mouse<NB_IN_NODES, NB_OUT_NODES, MAX_BRAIN_SIZE, MAX_NB_CONNECTIONS>
+  reproduce() {
+    // WARNING:
+  }
+
+  void draw(sf::RenderWindow *window) const {
+    sf::CircleShape to_display;
+    to_display.setRadius(5);
+    to_display.setPosition(m_x_pos, m_y_pos);
+    to_display.setOrigin(5.0f, 5.0f);
+    to_display.setFillColor(sf::Color(m_color.r, m_color.g, m_color.b));
+    window->draw(to_display);
+  }
+
+  virtual void update_angle_and_velocity(std::array<double, NB_IN_NODES>) = 0;
+
+public:
+  void advance(double dt, std::array<double, NB_IN_NODES> input) {
+    update_angle_and_velocity(input);
+    update_position(dt);
+  }
+};
+
+class SimpleMouse : public Mouse<2, 2, 20, 100> {
+  /* A simple mouse has a small brain:
+   * it can simply handle the distance to the predator,
+   * and the angle with it. It outputs the new velocity,
+   * and the change in angle.
+   * We cap the number of neurons to 20, and the number of
+   * connections to 100.
+   */
+
+public:
+  SimpleMouse(double max_angle, double sight_radius)
+      : Mouse<2, 2, 20, 100>(max_angle, sight_radius) {}
+
+private:
+  virtual void update_angle_and_velocity(std::array<double, 2U>) override {}
+};
+
+class MemoryMouse : public Mouse<3, 3, 30, 150> {
+  /* A memory mouse is a bit more complex:
+   * we add a new input, a memory neuron, which
+   * can store information. It therefore adds a input
+   * node, and an output one.
+   * We increase the number of possible neurons to 30,
+   * and the number of connections to 150.
+   */
+};

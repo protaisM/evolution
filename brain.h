@@ -1,14 +1,11 @@
 #pragma once
+
 #include <array>
 #include <cmath>
-#include <cstdio>
-#include <cstdlib>
 #include <iostream>
-#include <stdexcept>
-#include <system_error>
 #include <vector>
 
-unsigned int rnd_int_smaller_than(unsigned int bound) { return rand() % bound; }
+inline unsigned int rnd_int_smaller_than(unsigned int bound) { return rand() % bound; }
 
 class Node {
 private:
@@ -57,7 +54,8 @@ public:
   Node *get_node_in() { return m_node_in; }
 };
 
-template <unsigned int NB_IN_NODES, unsigned int NB_OUT_NODES, unsigned int MAX_BRAIN_SIZE = 30,
+template <unsigned int NB_IN_NODES, unsigned int NB_OUT_NODES,
+          unsigned int MAX_BRAIN_SIZE = 30,
           unsigned int MAX_NB_CONNECTIONS = 100>
 class Brain {
 private:
