@@ -1,4 +1,5 @@
 #include "brain.h"
+#include "mouse.h"
 #include <array>
 #include <iostream>
 

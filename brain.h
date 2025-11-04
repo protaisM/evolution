@@ -8,6 +8,8 @@
 #include <system_error>
 #include <vector>
 
+unsigned int rnd_int_smaller_than(unsigned int bound) { return rand() % bound; }
+
 class Node {
 private:
   double m_value;
@@ -55,17 +57,17 @@ public:
   Node *get_node_in() { return m_node_in; }
 };
 
-template <size_t NB_IN_NODES, size_t NB_OUT_NODES, size_t MAX_BRAIN_SIZE = 30,
-          size_t MAX_NB_CONNECTIONS = 100>
+template <unsigned int NB_IN_NODES, unsigned int NB_OUT_NODES, unsigned int MAX_BRAIN_SIZE = 30,
+          unsigned int MAX_NB_CONNECTIONS = 100>
 class Brain {
 private:
   std::array<Node, MAX_BRAIN_SIZE> m_nodes;
   std::array<Connection, MAX_NB_CONNECTIONS> m_connections;
-  size_t m_nb_hidden_nodes;
-  size_t m_nb_connections;
+  unsigned int m_nb_hidden_nodes;
+  unsigned int m_nb_connections;
 
 public:
-  Brain(size_t nb_hidden_nodes = 1)
+  Brain(unsigned int nb_hidden_nodes = 1)
       : m_nb_hidden_nodes(nb_hidden_nodes),
         m_nb_connections(NB_IN_NODES + NB_OUT_NODES) {
     /* The layout is the following:
@@ -76,16 +78,16 @@ public:
       throw std::runtime_error("Invalid brain size");
       exit(1);
     }
-    for (size_t i = 0; i < NB_IN_NODES; i++) {
+    for (unsigned int i = 0; i < NB_IN_NODES; i++) {
       Node input_node;
       m_nodes[i] = input_node;
     }
-    size_t hidden_node_beginning = NB_IN_NODES + NB_OUT_NODES;
-    for (size_t i = NB_IN_NODES; i < hidden_node_beginning; i++) {
+    unsigned int hidden_node_beginning = NB_IN_NODES + NB_OUT_NODES;
+    for (unsigned int i = NB_IN_NODES; i < hidden_node_beginning; i++) {
       Node output_node;
       m_nodes[i] = output_node;
     }
-    for (size_t i = hidden_node_beginning;
+    for (unsigned int i = hidden_node_beginning;
          i < hidden_node_beginning + m_nb_hidden_nodes; i++) {
       Node hidden_node;
       m_nodes[i] = hidden_node;
@@ -95,9 +97,9 @@ public:
      * any input or output node should be linked to a hidden node.
      * This process is random.
      */
-    size_t hidden_node_idx;
-    for (size_t i = 0; i < NB_IN_NODES; i++) {
-      hidden_node_idx = arc4random_uniform(m_nb_hidden_nodes);
+    unsigned int hidden_node_idx;
+    for (unsigned int i = 0; i < NB_IN_NODES; i++) {
+      hidden_node_idx = rnd_int_smaller_than(m_nb_hidden_nodes);
       std::cout << "Hidden node idx: " << hidden_node_idx << std::endl;
       Node *start = &m_nodes[i];
       Node *end = &m_nodes[hidden_node_beginning + hidden_node_idx];
@@ -106,8 +108,8 @@ public:
       Connection connection(start, end);
       m_connections[i] = connection;
     }
-    for (size_t i = NB_IN_NODES; i < hidden_node_beginning; i++) {
-      hidden_node_idx = arc4random_uniform(m_nb_hidden_nodes);
+    for (unsigned int i = NB_IN_NODES; i < hidden_node_beginning; i++) {
+      hidden_node_idx = rnd_int_smaller_than(m_nb_hidden_nodes);
       std::cout << "Hidden node idx: " << hidden_node_idx << std::endl;
       Node *start = &m_nodes[hidden_node_beginning + hidden_node_idx];
       Node *end = &m_nodes[i];
@@ -121,38 +123,38 @@ public:
   std::array<double, NB_OUT_NODES>
   activate(std::array<double, NB_IN_NODES> input) {
     set_to_zero();
-    for (size_t i = 0; i < NB_IN_NODES; i++) {
+    for (unsigned int i = 0; i < NB_IN_NODES; i++) {
       m_nodes[i].set_value(input[i]);
     }
-    for (size_t i = 0; i < m_nb_connections; i++) {
+    for (unsigned int i = 0; i < m_nb_connections; i++) {
       m_connections[i].activate();
     }
     std::array<double, NB_OUT_NODES> output;
-    for (size_t i = 0; i < NB_OUT_NODES; i++) {
+    for (unsigned int i = 0; i < NB_OUT_NODES; i++) {
       output[i] = m_nodes[i + NB_IN_NODES].get_value();
     }
     return output;
   }
 
   void print() {
-    for (size_t i = 0; i < NB_IN_NODES; i++) {
+    for (unsigned int i = 0; i < NB_IN_NODES; i++) {
       std::cout << "(" << m_nodes[i].get_value() << ")";
     }
     std::cout << std::endl;
-    size_t hidden_node_beginning = NB_IN_NODES + NB_OUT_NODES;
-    for (size_t i = hidden_node_beginning;
+    unsigned int hidden_node_beginning = NB_IN_NODES + NB_OUT_NODES;
+    for (unsigned int i = hidden_node_beginning;
          i < hidden_node_beginning + m_nb_hidden_nodes; i++) {
       std::cout << "(" << m_nodes[i].get_value() << ")";
     }
     std::cout << std::endl;
-    for (size_t i = NB_IN_NODES; i < hidden_node_beginning; i++) {
+    for (unsigned int i = NB_IN_NODES; i < hidden_node_beginning; i++) {
       std::cout << "(" << m_nodes[i].get_value() << ")";
     }
     std::cout << std::endl;
   }
 
   void mutate() {
-    size_t rnd = arc4random_uniform(100);
+    unsigned int rnd = rnd_int_smaller_than(100);
     if (rnd % 4 == 0) {
       std::cout << "Random connection created" << std::endl;
       add_random_connection();
@@ -190,7 +192,7 @@ private:
     Node *addr_new_node =
         &(m_nodes[NB_IN_NODES + NB_OUT_NODES + m_nb_hidden_nodes]);
     m_nb_hidden_nodes++;
-    size_t rnd_connection = arc4random_uniform(m_nb_connections);
+    unsigned int rnd_connection = rnd_int_smaller_than(m_nb_connections);
     Connection *modified_connection = &(m_connections[rnd_connection]);
     Node *old_node_out = modified_connection->get_node_out();
     modified_connection->change_node_out(addr_new_node);
@@ -204,10 +206,10 @@ private:
     if (m_nb_connections + 1 > MAX_NB_CONNECTIONS) {
       return;
     }
-    size_t rnd_node_in_idx =
-        arc4random_uniform(NB_IN_NODES + m_nb_hidden_nodes);
-    size_t rnd_node_out_idx =
-        arc4random_uniform(NB_OUT_NODES + m_nb_hidden_nodes);
+    unsigned int rnd_node_in_idx =
+        rnd_int_smaller_than(NB_IN_NODES + m_nb_hidden_nodes);
+    unsigned int rnd_node_out_idx =
+        rnd_int_smaller_than(NB_OUT_NODES + m_nb_hidden_nodes);
     Node *rnd_node_in = &(m_nodes[rnd_node_in_idx]);
     Node *rnd_node_out = &(m_nodes[NB_IN_NODES + rnd_node_out_idx]);
     Connection new_connection(rnd_node_in, rnd_node_out);
@@ -223,15 +225,15 @@ private:
     if (m_nb_connections <= 1) {
       return;
     }
-    size_t rnd_connection = arc4random_uniform(m_nb_connections);
-    for (size_t i = rnd_connection; i < m_nb_connections; i++) {
+    unsigned int rnd_connection = rnd_int_smaller_than(m_nb_connections);
+    for (unsigned int i = rnd_connection; i < m_nb_connections; i++) {
       m_connections[i] = m_connections[i + 1];
     }
     m_nb_connections--;
   }
 
   void change_connection_weight() {
-    size_t rnd_connection = arc4random_uniform(m_nb_connections);
+    unsigned int rnd_connection = rnd_int_smaller_than(m_nb_connections);
     Connection modified_connection = m_connections[rnd_connection];
     Connection new_connection(modified_connection.get_node_in(),
                               modified_connection.get_node_out());
@@ -240,12 +242,12 @@ private:
 
   bool sort_connections() {
     std::vector<Connection> connections_to_treat;
-    for (size_t i = 0; i < m_nb_connections; i++) {
+    for (unsigned int i = 0; i < m_nb_connections; i++) {
       connections_to_treat.push_back(m_connections[i]);
     }
     Connection current_connection;
-    size_t current_idx = 0;
-    size_t nb_tries = 0;
+    unsigned int current_idx = 0;
+    unsigned int nb_tries = 0;
     while (!connections_to_treat.empty() and nb_tries < m_nb_connections) {
       current_connection = connections_to_treat[0];
       connections_to_treat.erase(connections_to_treat.begin());
