@@ -5,7 +5,11 @@
 #include <iostream>
 #include <vector>
 
-inline unsigned int rnd_int_smaller_than(unsigned int bound) { return rand() % bound; }
+inline unsigned int rnd_int_smaller_than(unsigned int bound) {
+  return rand() % bound;
+}
+
+inline double rand_0_1() { return (double)std::rand() / ((double)RAND_MAX); }
 
 class Node {
 private:
@@ -35,8 +39,6 @@ public:
     m_node_out = node_out;
     m_weight = ((double)rand() / RAND_MAX) * 2 - 1;
     m_shift = ((double)rand() / RAND_MAX) * 2 - 1;
-    // std::cout << "Weight: " << m_weight << ", shift: " << m_shift <<
-    // std::endl;
   }
 
   Connection() {}
@@ -47,6 +49,11 @@ public:
     double out = tanh(m_weight * in + m_shift);
     std::cout << " --> " << out << std::endl;
     m_node_out->add_to_value(out);
+  }
+
+  void mutate(double mutation_strength) {
+    m_weight += mutation_strength * (((double)rand() / RAND_MAX) * 2 - 1);
+    m_shift += mutation_strength * (((double)rand() / RAND_MAX) * 2 - 1);
   }
 
   void change_node_out(Node *new_node_out) { m_node_out = new_node_out; }
@@ -121,6 +128,7 @@ public:
   std::array<double, NB_OUT_NODES>
   activate(std::array<double, NB_IN_NODES> input) {
     set_to_zero();
+    print();
     for (unsigned int i = 0; i < NB_IN_NODES; i++) {
       m_nodes[i].set_value(input[i]);
     }
@@ -129,7 +137,7 @@ public:
     }
     std::array<double, NB_OUT_NODES> output;
     for (unsigned int i = 0; i < NB_OUT_NODES; i++) {
-      output[i] = m_nodes[i + NB_IN_NODES].get_value();
+      output[i] = tanh(m_nodes[i + NB_IN_NODES].get_value());
     }
     return output;
   }
@@ -151,21 +159,29 @@ public:
     std::cout << std::endl;
   }
 
-  void mutate() {
-    unsigned int rnd = rnd_int_smaller_than(100);
-    if (rnd % 4 == 0) {
+  void mutate(double mutation_strength) {
+    if (mutation_strength < 0 or mutation_strength > 1) {
+      std::cerr << "The mutation strength should be between 0 and 1."
+                << std::endl;
+      return;
+    }
+    double rnd = rand_0_1();
+    if (rnd < mutation_strength) {
       std::cout << "Random connection created" << std::endl;
       add_random_connection();
     }
-    if (rnd % 4 == 1) {
+    rnd = rand_0_1();
+    if (rnd < mutation_strength) {
       std::cout << "Random node created" << std::endl;
       add_random_node();
     }
-    if (rnd % 4 == 2) {
+    rnd = rand_0_1();
+    if (rnd < mutation_strength) {
       std::cout << "Random connection changed" << std::endl;
-      change_connection_weight();
+      change_connection_weight(mutation_strength);
     }
-    if (rnd % 15 == 0) {
+    rnd = rand_0_1();
+    if (3 * rnd < mutation_strength) {
       std::cout << "Random connection removed" << std::endl;
       remove_random_connection();
     }
@@ -230,11 +246,16 @@ private:
     m_nb_connections--;
   }
 
-  void change_connection_weight() {
+  void change_connection_weight(double mutation_strength) {
+    if (mutation_strength < 0 or mutation_strength > 1) {
+      std::cerr << "The mutation strength should be between 0 and 1."
+                << std::endl;
+      return;
+    }
     unsigned int rnd_connection = rnd_int_smaller_than(m_nb_connections);
     Connection modified_connection = m_connections[rnd_connection];
-    Connection new_connection(modified_connection.get_node_in(),
-                              modified_connection.get_node_out());
+    Connection new_connection = modified_connection;
+    new_connection.mutate(mutation_strength);
     m_connections[rnd_connection] = new_connection;
   }
 
