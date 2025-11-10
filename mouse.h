@@ -5,6 +5,7 @@
 // #include <SFML/Graphics.hpp>
 // #include <SFML/Graphics/RenderWindow.hpp>
 #include <array>
+#include <cmath>
 
 struct Color {
   int r;
@@ -13,7 +14,7 @@ struct Color {
 };
 
 inline double rand_pos() { return (double)std::rand() / ((double)RAND_MAX); }
-inline double rand_angle() { return 360 * rand_pos(); }
+inline double rand_angle() { return 2 * M_PI * rand_pos(); }
 
 template <unsigned int NB_IN_NODES, unsigned int NB_OUT_NODES,
           unsigned int MAX_BRAIN_SIZE, unsigned int MAX_NB_CONNECTIONS>
@@ -24,7 +25,7 @@ protected:
   double m_x_pos;
   double m_y_pos;
   double m_velocity;
-  // the angle is in [0,360]
+  // the angle is in [0,2pi]
   double m_angle;
 
   // normalised to 1
@@ -35,15 +36,6 @@ protected:
   Color m_color;
 
 public:
-  // Mouse(double x, double y, double max_angle, double sight_radius)
-  //     : m_x_pos(x), m_y_pos(y), m_is_alive(true), m_velocity(rand_pos()),
-  //       m_max_angle(max_angle), m_angle(rand_angle()),
-  //       m_sight_radius(sight_radius), m_brain(3) {
-  //   m_color.r = std::rand() % 255;
-  //   m_color.g = std::rand() % 255;
-  //   m_color.b = std::rand() % 255;
-  // }
-  //
   Mouse(double max_angle, double sight_radius)
       : m_x_pos(rand_pos()), m_y_pos(rand_pos()), m_is_alive(true),
         m_velocity(0), m_max_angle(max_angle), m_angle(rand_angle()),
@@ -79,8 +71,6 @@ protected:
     m_y_pos = pos[1];
   }
 
-  void mutate(double mutation_strength) { m_brain.mutate(mutation_strength); }
-
   // void draw(sf::RenderWindow *window) const {
   //   sf::CircleShape to_display;
   //   to_display.setRadius(5);
@@ -102,12 +92,14 @@ public:
     update_angle_and_velocity(input);
     update_position(dt);
   }
+
+  void mutate(double mutation_strength) { m_brain.mutate(mutation_strength); }
 };
 
 class SimpleMouse : public Mouse<2, 2, 20, 100> {
   /* A simple mouse has a small brain:
    * it can simply handle the distance to the predator,
-   * in the x and y coordinates. It outputs the new velocity,
+   * and the angle at which it sees it. It outputs the new velocity,
    * and the change in angle.
    * We cap the number of neurons to 20, and the number of
    * connections to 100.
@@ -130,22 +122,21 @@ public:
 protected:
   virtual void
   update_angle_and_velocity(std::array<double, 2> predator_position) override {
-    std::cout << "Updating..." << std::endl;
     double dist_x = predator_position[0] - m_x_pos;
     double dist_y = predator_position[1] - m_y_pos;
+    double dist = std::sqrt((dist_x) * (dist_x) + (dist_y) * (dist_y));
     std::array<double, 2> output_from_brain;
-    if (std::sqrt((dist_x) * (dist_x) + (dist_y) * (dist_y)) <=
-        m_sight_radius) {
-      output_from_brain = m_brain.activate({dist_x, dist_y});
-      m_velocity = std::abs(output_from_brain[0]);
-      m_angle += m_max_angle * output_from_brain[1];
-      if (m_angle < 0)
-        m_angle = 0;
-      if (m_angle > 360)
-        m_angle = 360;
+    if (dist <= m_sight_radius) {
+      output_from_brain = m_brain.activate({dist, std::atan(dist_y / dist_x)});
     } else {
-      std::cout << "Too far away !" << std::endl;
+      output_from_brain = m_brain.activate({-1, 0});
     }
+    m_velocity = std::abs(output_from_brain[0]);
+    m_angle += m_max_angle * output_from_brain[1];
+    if (m_angle < 0)
+      m_angle += 2 * M_PI;
+    if (m_angle > 2 * M_PI)
+      m_angle -= 2 * M_PI;
   }
 };
 
