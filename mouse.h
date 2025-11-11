@@ -18,7 +18,7 @@ inline double rand_angle() { return 2 * M_PI * rand_pos(); }
 
 template <unsigned int NB_IN_NODES, unsigned int NB_OUT_NODES,
           unsigned int MAX_BRAIN_SIZE, unsigned int MAX_NB_CONNECTIONS>
-class Mouse {
+class BaseMouse {
 protected:
   Brain<NB_IN_NODES, NB_OUT_NODES, MAX_BRAIN_SIZE, MAX_NB_CONNECTIONS> m_brain;
   // note that positions and velocity are normalised to 1
@@ -36,7 +36,7 @@ protected:
   Color m_color;
 
 public:
-  Mouse(double max_angle, double sight_radius)
+  BaseMouse(double max_angle, double sight_radius)
       : m_x_pos(rand_pos()), m_y_pos(rand_pos()), m_is_alive(true),
         m_velocity(0), m_max_angle(max_angle), m_angle(rand_angle()),
         m_sight_radius(sight_radius), m_brain(3) {
@@ -45,7 +45,7 @@ public:
     m_color.b = std::rand() % 255;
   }
 
-  Mouse() : m_is_alive(false) {}
+  BaseMouse() : m_is_alive(false) {}
 
   double get_x() const { return m_x_pos; }
   double get_y() const { return m_y_pos; }
@@ -96,7 +96,7 @@ public:
   void mutate(double mutation_strength) { m_brain.mutate(mutation_strength); }
 };
 
-class SimpleMouse : public Mouse<2, 2, 20, 100> {
+class SimpleMouse : public BaseMouse<2, 2, 20, 100> {
   /* A simple mouse has a small brain:
    * it can simply handle the distance to the predator,
    * and the angle at which it sees it. It outputs the new velocity,
@@ -107,15 +107,15 @@ class SimpleMouse : public Mouse<2, 2, 20, 100> {
 
 public:
   SimpleMouse(double max_angle, double sight_radius)
-      : Mouse<2, 2, 20, 100>(max_angle, sight_radius) {}
+      : BaseMouse<2, 2, 20, 100>(max_angle, sight_radius) {}
 
-  SimpleMouse() : Mouse<2, 2, 20, 100>() {}
+  SimpleMouse() : BaseMouse<2, 2, 20, 100>() {}
 
   virtual void print() override {
     std::cout << "A simple mouse at position (" << m_x_pos << "," << m_y_pos
               << "), with velocity " << m_velocity << " and direction "
               << m_angle << std::endl;
-    std::cout << "Its brain is:";
+    std::cout << "Its brain is:" << std::endl;
     m_brain.print();
   }
 
@@ -140,7 +140,7 @@ protected:
   }
 };
 
-class MemoryMouse : public Mouse<3, 3, 30, 150> {
+class MemoryMouse : public BaseMouse<3, 3, 30, 150> {
   /* A memory mouse is a bit more complex:
    * we add a new input, a memory neuron, which
    * can store information. It therefore adds a input
