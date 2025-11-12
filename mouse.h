@@ -13,6 +13,11 @@ struct Color {
   int b;
 };
 
+struct Position {
+  double x;
+  double y;
+};
+
 inline double rand_pos() { return (double)std::rand() / ((double)RAND_MAX); }
 inline double rand_angle() { return 2 * M_PI * rand_pos(); }
 
@@ -22,8 +27,7 @@ class BaseMouse {
 protected:
   Brain<NB_IN_NODES, NB_OUT_NODES, MAX_BRAIN_SIZE, MAX_NB_CONNECTIONS> m_brain;
   // note that positions and velocity are normalised to 1
-  double m_x_pos;
-  double m_y_pos;
+  Position m_position;
   double m_velocity;
   // the angle is in [0,2pi]
   double m_angle;
@@ -36,9 +40,10 @@ protected:
   Color m_color;
 
 public:
-  BaseMouse(double max_angle, double sight_radius)
-      : m_x_pos(rand_pos()), m_y_pos(rand_pos()), m_is_alive(true),
-        m_velocity(0), m_max_angle(max_angle), m_angle(rand_angle()),
+  BaseMouse(double max_angle, double sight_radius,
+            Position (*rnd_pos_generator)())
+      : m_position((*rnd_pos_generator)()), m_is_alive(true), m_velocity(0),
+        m_max_angle(max_angle), m_angle(rand_angle()),
         m_sight_radius(sight_radius), m_brain(3) {
     m_color.r = std::rand() % 255;
     m_color.g = std::rand() % 255;
@@ -47,15 +52,15 @@ public:
 
   BaseMouse() : m_is_alive(false) {}
 
-  double get_x() const { return m_x_pos; }
-  double get_y() const { return m_y_pos; }
+  double get_x() const { return m_position.x; }
+  double get_y() const { return m_position.y; }
   double get_angle() const { return m_angle; }
   bool is_alive() const { return m_is_alive; }
   void kill() { m_is_alive = false; }
 
 protected:
   std::array<double, 2> get_next_position(double dt) {
-    std::array<double, 2> pos({m_x_pos, m_y_pos});
+    std::array<double, 2> pos({m_position.x, m_position.y});
     pos[0] += dt * std::cos(m_angle) * m_velocity;
     pos[1] += dt * std::sin(m_angle) * m_velocity;
     return pos;
@@ -67,8 +72,8 @@ protected:
       std::cerr << "This bird is not alive" << std::endl;
     }
     std::array<double, 2> pos(get_next_position(dt));
-    m_x_pos = pos[0];
-    m_y_pos = pos[1];
+    m_position.x = pos[0];
+    m_position.y = pos[1];
   }
 
   // void draw(sf::RenderWindow *window) const {
@@ -106,15 +111,17 @@ class SimpleMouse : public BaseMouse<2, 2, 20, 100> {
    */
 
 public:
-  SimpleMouse(double max_angle, double sight_radius)
-      : BaseMouse<2, 2, 20, 100>(max_angle, sight_radius) {}
+  SimpleMouse(double max_angle, double sight_radius,
+              Position (*rnd_pos_generator)())
+      : BaseMouse<2, 2, 20, 100>(max_angle, sight_radius,
+                                 (*rnd_pos_generator)) {}
 
   SimpleMouse() : BaseMouse<2, 2, 20, 100>() {}
 
   virtual void print() override {
-    std::cout << "A simple mouse at position (" << m_x_pos << "," << m_y_pos
-              << "), with velocity " << m_velocity << " and direction "
-              << m_angle << std::endl;
+    std::cout << "A simple mouse at position (" << m_position.x << ","
+              << m_position.y << "), with velocity " << m_velocity
+              << " and direction " << m_angle << std::endl;
     std::cout << "Its brain is:" << std::endl;
     m_brain.print();
   }
@@ -122,8 +129,8 @@ public:
 protected:
   virtual void
   update_angle_and_velocity(std::array<double, 2> predator_position) override {
-    double dist_x = predator_position[0] - m_x_pos;
-    double dist_y = predator_position[1] - m_y_pos;
+    double dist_x = predator_position[0] - m_position.x;
+    double dist_y = predator_position[1] - m_position.y;
     double dist = std::sqrt((dist_x) * (dist_x) + (dist_y) * (dist_y));
     std::array<double, 2> output_from_brain;
     if (dist <= m_sight_radius) {
