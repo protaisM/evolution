@@ -1,9 +1,8 @@
 #pragma once
 
-// #include <SFML/Graphics.hpp>
-// #include <SFML/Graphics/RenderWindow.hpp>
 #include "map.h"
 
+#include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
@@ -28,38 +27,6 @@
 //   bool is_in(std::array<double, 2>) const;
 // };
 
-struct Predator {
-  Position position;
-  double radius;
-  double velocity = 1.0;
-  double angle;
-
-  Position get_position() { return position; }
-
-  // void draw(sf::RenderWindow *window) const {
-  //   sf::CircleShape death(radius);
-  //   death.setPosition(x, y);
-  //   death.setFillColor(sf::Color::Red);
-  //   death.setOrigin(radius, radius);
-  //   window->draw(death);
-};
-
-//   std::array<double, 2> get_next_position_toward(std::array<double, 2> pt)
-//   {
-//     double direction_x = pt[0] - x;
-//     double direction_y = pt[1] - y;
-//     double direction_x_norm =
-//         speed * direction_x /
-//         sqrt(direction_x * direction_x + direction_y * direction_y);
-//     double direction_y_norm =
-//         speed * direction_y /
-//         sqrt(direction_x * direction_x + direction_y * direction_y);
-//     double next_x = x + direction_x_norm;
-//     double next_y = y + direction_y_norm;
-//     return {next_x, next_y};
-//   }
-// };
-
 template <typename Mouse, typename Predator, typename Map,
           unsigned int MICE_NUMBER>
 class Experiment {
@@ -81,7 +48,8 @@ private:
   const double m_window_size = 960;
 
 public:
-  Experiment(char title[40], Map map, unsigned int evolutive_pressure = 4,
+  Experiment(char title[40], Map map, double predator_radius = 0.01,
+             unsigned int evolutive_pressure = 4,
              double mutation_strength = 0.1, int duration_day = 20000)
       : m_evolutive_pressure(evolutive_pressure),
         m_mutation_strength(mutation_strength), m_duration_day(duration_day),
@@ -90,7 +58,8 @@ public:
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
       m_mices[i] = Mouse([&map]() { return map.rnd_position(); });
     }
-    // predator
+    m_predator =
+        Predator([&map]() { return map.rnd_position(); }, predator_radius);
   }
 
   void run_on_background(double dt) {
@@ -98,6 +67,7 @@ public:
       do_one_step(dt);
     }
   }
+
   void run_and_display(double dt) {
     double space_right = sf::VideoMode::getDesktopMode().width - m_window_size;
     double space_bottom =
@@ -118,7 +88,7 @@ private:
       m_mices[i].advance(dt, m_predator.get_position(),
                          [this](Position pos) { return m_map.is_in(pos); });
     }
-    // move_predator();
+    m_predator.advance(dt, [this](Position pos) { return m_map.is_in(pos); });
     // m_map.kill_birds_in_circle(m_predator.x, m_predator.y,
     // m_predator.radius); m_time++; if (condition_end_of_day()) {
     //   // std::cout << "end of the day !"<< std::endl;
@@ -129,9 +99,6 @@ private:
     //   save_current_state();
     // }
   }
-  // void move_predator();
-  // void move_safe_zone();
-  // bool condition_end_of_day();
 
   // void save_brain_to_file(/*ostream ?*/);
   // void save_current_state();
@@ -194,7 +161,7 @@ private:
           m_mices[i].draw(window, m_window_size);
         }
       }
-      // m_predator.draw(window);
+      m_predator.draw(window, m_window_size);
       // m_safe_zone.draw(window);
       draw_legend(window, space_right, space_bottom);
       window->display();
@@ -205,7 +172,7 @@ private:
           m_mices[i].draw(window, m_window_size);
         }
       }
-      // m_predator.draw(window);
+      m_predator.draw(window, m_window_size);
       // m_safe_zone.draw(window);
       window->display();
       break;
@@ -253,9 +220,10 @@ private:
     //     "Size of the safe zone : " + std::to_string(m_safe_zone.radius) +
     //     "\n";
     text_panel +=
-        "Size of the predator : " + std::to_string(m_predator.radius) + "\n";
+        "Size of the predator : " + std::to_string(m_predator.m_radius) + "\n";
     text_panel +=
-        "Speed of the predator : " + std::to_string(m_predator.velocity) + "\n";
+        "Speed of the predator : " + std::to_string(m_predator.m_velocity) +
+        "\n";
     text_panel += "\n";
     text_panel += "Day : " + std::to_string(m_day) +
                   ", Time :  " + std::to_string(m_time) + "\n";

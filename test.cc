@@ -1,7 +1,7 @@
 #include "experiment.h"
 #include "map.h"
 #include "mouse.h"
-
+#include "predator.h"
 
 int main() {
   srand(time(NULL));
