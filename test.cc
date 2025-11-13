@@ -5,7 +5,7 @@
 
 int main() {
   srand(time(NULL));
-  // Brain<3, 2, 30, 100> brain(2);
+  // Brain<1, 2, 10, 100> brain(2);
   // brain.print();
   // std::array<double, 2> result = brain.activate({1, 0, -1});
   // // brain.print();
@@ -29,7 +29,8 @@ int main() {
   //                   [&my_map](Position pos) { return my_map.is_in(pos); });
   // other_one.print();
 
-  Experiment<SimpleMouse, Cat, Square, 1000> my_experiment("Test", my_map);
+  Experiment<SimpleMouse, Cat, Square, 1000> my_experiment("numerous", my_map);
+  // my_experiment.resume("cat_mice1");
   my_experiment.run_and_display(0.01);
 
   return 0;

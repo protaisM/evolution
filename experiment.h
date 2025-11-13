@@ -10,7 +10,9 @@
 #include <SFML/Window/Event.hpp>
 #include <array>
 #include <cstring>
+#include <fstream>
 #include <iostream>
+#include <string>
 
 // struct Safe_zone {
 //   double x;
@@ -33,8 +35,8 @@ template <typename Mouse, typename Predator, typename Map,
 class Experiment {
 private:
   Predator m_predator;
-  std::array<Mouse, MICE_NUMBER> m_mices;
-  unsigned int m_nb_alive_mices;
+  std::array<Mouse, MICE_NUMBER> m_mice;
+  unsigned int m_nb_alive_mice;
   // Safe_zone m_safe_zone;
 
   double m_time;
@@ -50,14 +52,14 @@ private:
 
 public:
   Experiment(char title[40], Map map, double predator_radius = 0.1,
-             unsigned int evolutive_pressure = 4,
+             double mouse_radius = 0.3, unsigned int evolutive_pressure = 4,
              double mutation_strength = 0.1, int duration_day = 100)
       : m_evolutive_pressure(evolutive_pressure),
         m_mutation_strength(mutation_strength), m_duration_day(duration_day),
-        m_nb_alive_mices(MICE_NUMBER), m_map(map), m_time(0.0), m_day(0) {
+        m_nb_alive_mice(MICE_NUMBER), m_map(map), m_time(0.0), m_day(0) {
     strcpy(m_title, title);
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
-      m_mices[i] = Mouse([&map]() { return map.rnd_position(); });
+      m_mice[i] = Mouse([&map]() { return map.rnd_position(); }, mouse_radius);
     }
     m_predator =
         Predator([&map]() { return map.rnd_position(); }, predator_radius);
@@ -79,19 +81,29 @@ public:
     run_on_window(&window, dt);
   }
 
+  void resume(std::string title) {
+    std::fstream in(title, std::ios::in | std::ios::binary);
+    if (!in) {
+      std::cerr << "\a\n\nLog file not found\n\n";
+      return;
+    }
+    in.read(reinterpret_cast<char *>(this), sizeof(*this));
+    in.close();
+  }
+
 private:
   void do_one_step(double dt) {
     m_time = m_time + dt;
     m_predator.advance(dt, [this](Position pos) { return m_map.is_in(pos); });
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
-      if (!m_mices[i].is_alive()) {
+      if (!m_mice[i].is_alive()) {
         continue;
       }
-      m_mices[i].advance(dt, m_predator.get_position(),
+      m_mice[i].advance(dt, m_predator.get_position(),
                          [this](Position pos) { return m_map.is_in(pos); });
-      if (m_predator.is_in_death_zone(m_mices[i].get_position())) {
-        m_mices[i].kill();
-        m_nb_alive_mices--;
+      if (m_predator.is_in_death_zone(m_mice[i].get_position())) {
+        m_mice[i].kill();
+        m_nb_alive_mice--;
       }
     }
 
@@ -101,54 +113,50 @@ private:
       m_predator.randomize_position([this]() { return m_map.rnd_position(); });
       m_day++;
       m_time -= m_time;
-      //   save_current_state();
+      save_current_state();
     }
   }
 
   bool condition_end_of_day() {
-    return (m_nb_alive_mices < MICE_NUMBER / m_evolutive_pressure + 1) ||
+    return (m_nb_alive_mice < MICE_NUMBER / m_evolutive_pressure + 1) ||
            m_time >= m_duration_day;
   }
 
   void reproduce_alive() {
-    if (m_nb_alive_mices <= 0) {
+    if (m_nb_alive_mice <= 0) {
       std::cerr << "No mice to reproduce" << std::endl;
       return;
     }
     unsigned int reproduction_rate =
-        std::min(MICE_NUMBER / m_nb_alive_mices, m_evolutive_pressure);
+        std::min(MICE_NUMBER / m_nb_alive_mice, m_evolutive_pressure);
     size_t index_alive_mouse = 0;
     size_t index;
-    std::array<Mouse, MICE_NUMBER> new_mices;
+    std::array<Mouse, MICE_NUMBER> new_mice;
     for (unsigned int reading_index = 0; reading_index < MICE_NUMBER;
          reading_index++) {
-      if (!m_mices[reading_index].is_alive()) {
+      if (!m_mice[reading_index].is_alive()) {
         continue;
       }
       for (size_t i = 0; i < reproduction_rate; i++) {
         index = index_alive_mouse * reproduction_rate + i;
-        if (index_alive_mouse >= m_nb_alive_mices) {
-          std::cerr << "Error in the count of alive mices" << std::endl;
+        if (index_alive_mouse >= m_nb_alive_mice) {
+          std::cerr << "Error in the count of alive mice" << std::endl;
           exit(0);
         }
         if (index >= MICE_NUMBER) {
           std::cerr << "Error in the reproduction" << std::endl;
           exit(0);
         }
-        new_mices[index] = m_mices[reading_index];
-        new_mices[index].mutate(m_mutation_strength);
-        new_mices[index].randomize_position(
+        new_mice[index] = m_mice[reading_index];
+        new_mice[index].mutate(m_mutation_strength);
+        new_mice[index].randomize_position(
             [this]() { return m_map.rnd_position(); });
       }
       index_alive_mouse++;
     }
-    m_mices = new_mices;
-    m_nb_alive_mices = index + 1;
+    m_mice = new_mice;
+    m_nb_alive_mice = index + 1;
   }
-
-  // void save_brain_to_file(/*ostream ?*/);
-  // void save_current_state();
-  // void run_on_window(sf::RenderWindow *);
 
   void run_on_window(sf::RenderWindow *window, double dt) {
     int screen = 1;
@@ -200,8 +208,8 @@ private:
     switch (screen) {
     case 1:
       for (size_t i = 0; i < MICE_NUMBER; i++) {
-        if (m_mices[i].is_alive()) {
-          m_mices[i].draw(window, m_window_size);
+        if (m_mice[i].is_alive()) {
+          m_mice[i].draw(window, m_window_size);
         }
       }
       m_predator.draw(window, m_window_size);
@@ -211,8 +219,8 @@ private:
       break;
     case 2:
       for (size_t i = 0; i < MICE_NUMBER; i++) {
-        if (m_mices[i].is_alive()) {
-          m_mices[i].draw(window, m_window_size);
+        if (m_mice[i].is_alive()) {
+          m_mice[i].draw(window, m_window_size);
         }
       }
       m_predator.draw(window, m_window_size);
@@ -237,7 +245,7 @@ private:
     sf::Text legend;
     legend.setFont(font);
     std::string text_legend =
-        " Mices alive : " + std::to_string(m_nb_alive_mices) + "\n";
+        " Mice alive : " + std::to_string(m_nb_alive_mice) + "\n";
     text_legend +=
         " Day " + std::to_string(m_day) + " and time " + std::to_string(m_time);
     legend.setString(text_legend);
@@ -252,7 +260,7 @@ private:
     text_panel += "Title : " + std::string(m_title) + "\n";
     text_panel += "Zoom : (" + std::to_string(m_window_size) + "," +
                   std::to_string(m_window_size) + ")\n";
-    text_panel += "Max number of mices : " + std::to_string(MICE_NUMBER) + "\n";
+    text_panel += "Max number of mice : " + std::to_string(MICE_NUMBER) + "\n";
     text_panel +=
         "Duration of the day : " + std::to_string(m_duration_day) + "\n";
     text_panel +=
@@ -271,7 +279,7 @@ private:
     text_panel += "Day : " + std::to_string(m_day) +
                   ", Time :  " + std::to_string(m_time) + "\n";
     text_panel +=
-        "Remaining mices : " + std::to_string(m_nb_alive_mices) + "\n";
+        "Remaining mice : " + std::to_string(m_nb_alive_mice) + "\n";
 
     panel.setString(text_panel);
     panel.setFillColor(sf::Color::White);
@@ -305,7 +313,13 @@ private:
     window->draw(legend);
   }
 
-  void resume();
-
-  void set_random_pos(bool);
+  void save_current_state() {
+    std::fstream out(m_title, std::ios::out | std::ios::binary);
+    if (!out.is_open()) {
+      std::cerr << "\a\n\nFile not created\n\n";
+      return;
+    }
+    out.write(reinterpret_cast<char *>(this), sizeof(*this));
+    out.close();
+  }
 };

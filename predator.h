@@ -21,7 +21,20 @@ struct Cat {
   Position get_position() { return m_position; }
 
   void advance(double dt, std::function<bool(Position)> is_in_map) {
+    // run in circle
     m_angle = M_PI / 2 + atan2((m_position.y - 0.5) , (m_position.x - 0.5));
+    // if (m_position.x > 0.5 and m_position.y > 0.5) {
+    //   m_angle = M_PI / 2;
+    // }
+    // if (m_position.x < 0.5 and m_position.y > 0.5) {
+    //   m_angle = 0;
+    // }
+    // if (m_position.x > 0.5 and m_position.y < 0.5) {
+    //   m_angle = M_PI;
+    // }
+    // if (m_position.x < 0.5 and m_position.y < 0.5) {
+    //   m_angle = -M_PI / 2;
+    // }
     Position pos({m_position.x, m_position.y});
     pos.x += dt * std::cos(m_angle) * m_velocity;
     pos.y += dt * std::sin(m_angle) * m_velocity;
