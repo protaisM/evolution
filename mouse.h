@@ -3,8 +3,8 @@
 #include "brain.h"
 #include "map.h"
 
-// #include <SFML/Graphics.hpp>
-// #include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Graphics.hpp>
+#include <SFML/Graphics/RenderWindow.hpp>
 #include <array>
 #include <cmath>
 #include <functional>
@@ -75,15 +75,6 @@ protected:
     }
   }
 
-  // void draw(sf::RenderWindow *window) const {
-  //   sf::CircleShape to_display;
-  //   to_display.setRadius(5);
-  //   to_display.setPosition(m_x_pos, m_y_pos);
-  //   to_display.setOrigin(5.0f, 5.0f);
-  //   to_display.setFillColor(sf::Color(m_color.r, m_color.g, m_color.b));
-  //   window->draw(to_display);
-  // }
-
   virtual void update_angle_and_velocity(Position predator_position) = 0;
 
   virtual void print() {
@@ -99,6 +90,15 @@ public:
   }
 
   void mutate(double mutation_strength) { m_brain.mutate(mutation_strength); }
+
+  void draw(sf::RenderWindow *window, double zoom) const {
+    sf::CircleShape to_display;
+    to_display.setRadius(5);
+    to_display.setPosition(zoom * m_position.x, zoom * m_position.y);
+    to_display.setOrigin(5.0f, 5.0f);
+    to_display.setFillColor(sf::Color(m_color.r, m_color.g, m_color.b));
+    window->draw(to_display);
+  }
 };
 
 class SimpleMouse : public BaseMouse<4, 2, 20, 100> {

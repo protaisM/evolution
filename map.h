@@ -31,8 +31,8 @@ public:
 
   virtual Position rnd_position() const {
     Position result;
-    result.x = ((double)std::rand() / ((double)RAND_MAX)) * m_side_length;
-    result.y = ((double)std::rand() / ((double)RAND_MAX)) * m_side_length;
+    result.x = ((double)rand() / ((double)RAND_MAX)) * m_side_length;
+    result.y = ((double)rand() / ((double)RAND_MAX)) * m_side_length;
     return result;
   }
 };

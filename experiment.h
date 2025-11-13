@@ -4,6 +4,11 @@
 // #include <SFML/Graphics/RenderWindow.hpp>
 #include "map.h"
 
+#include <SFML/Graphics/Font.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
+#include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Graphics/Text.hpp>
+#include <SFML/Window/Event.hpp>
 #include <array>
 #include <cstring>
 
@@ -73,6 +78,7 @@ private:
   const unsigned int m_evolutive_pressure;
   const double m_mutation_strength;
   const int m_duration_day;
+  const double m_window_size = 900;
 
 public:
   Experiment(char title[40], Map map, unsigned int evolutive_pressure = 4,
@@ -92,10 +98,17 @@ public:
       do_one_step(dt);
     }
   }
-
+  void run_and_display(double dt) {
+    double space_right = sf::VideoMode::getDesktopMode().width - m_window_size;
+    double space_bottom =
+        sf::VideoMode::getDesktopMode().height - m_window_size;
+    sf::RenderWindow window(sf::VideoMode(m_window_size + space_right,
+                                          m_window_size + space_bottom),
+                            std::string(m_title));
+    run_on_window(&window, dt);
+  }
 
 private:
-
   void do_one_step(double dt) {
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
       if (!m_mices[i].is_alive()) {
@@ -126,16 +139,161 @@ private:
   // void draw(sf::RenderWindow *, int, int, int) const;
   // void draw_legend(sf::RenderWindow *, int, int) const;
 
-  // void run_and_display() {
-  //   double space_right = sf::VideoMode::getDesktopMode().width -
-  //   m_map_width; double space_bottom =
-  //   sf::VideoMode::getDesktopMode().height - m_map_height; sf::RenderWindow
-  //   window(
-  //       sf::VideoMode(m_map_width + space_right, m_map_height +
-  //       space_bottom), std::string(m_title));
-  //   run_on_window(&window);
-  // }
+  void run_on_window(sf::RenderWindow *window, double dt) {
+    int screen = 1;
+    double space_right = sf::VideoMode::getDesktopMode().width - m_window_size;
+    double space_bottom =
+        sf::VideoMode::getDesktopMode().height - m_window_size;
+    while (window->isOpen()) {
+      sf::Event evnt;
+      while (window->pollEvent(evnt)) {
+        handle_event(window, evnt, screen);
+      }
+      do_one_step(dt);
+      draw(window, screen, space_right, space_bottom);
+    }
+  }
+  void handle_event(sf::RenderWindow *window, sf::Event evnt, int &screen) {
+    switch (evnt.type) {
+    case sf::Event::Closed: // close the window
+      window->close();
+      break;
+    case (sf::Event::KeyReleased):
+      if (evnt.key.code == sf::Keyboard::Num1) // display screen 1
+      {
+        screen = 1;
+      }
+      if (evnt.key.code == sf::Keyboard::Num2) // display screen 2 (no legend)
+      {
+        screen = 2;
+      }
+      if (evnt.key.code == sf::Keyboard::Num3) // display screen 3 (only legend)
+      {
+        screen = 3;
+        window->clear();
+      }
+      if (evnt.key.code == sf::Keyboard::Num4) // display screen 4 (nothing)
+      {
+        screen = 4;
+        window->clear();
+      }
+      break;
+    default:
+      break;
+    }
+  }
 
+  void draw(sf::RenderWindow *window, int screen, int space_right,
+            int space_bottom) const {
+    window->clear();
+    switch (screen) {
+    case 1:
+      for (size_t i = 0; i < MICE_NUMBER; i++) {
+        if (m_mices[i].is_alive()) {
+
+          m_mices[i].draw(window, m_window_size);
+        }
+      }
+      // m_map.draw(window);
+      // m_predator.draw(window);
+      // m_safe_zone.draw(window);
+      draw_legend(window, space_right, space_bottom);
+      window->display();
+      break;
+    case 2:
+      // m_map.draw(window);
+      // m_predator.draw(window);
+      // m_safe_zone.draw(window);
+      window->display();
+      break;
+    case 3:
+      draw_legend(window, space_right, space_bottom);
+      window->display();
+      break;
+    case 4:
+      break;
+    default:
+      break;
+    }
+  }
+
+  void draw_legend(sf::RenderWindow *window, int space_right,
+                   int space_bottom) const {
+    sf::Font font;
+    font.loadFromFile("UbuntuMono-R.ttf");
+
+    // legend at the bottom
+    sf::Text legend;
+    legend.setFont(font);
+    std::string text_legend =
+        //     " Birds alive : " + std::to_string(m_map.get_nb_alive_birds()) +
+        //     "\n";
+        // text_legend +=
+        " Day " + std::to_string(m_day) + " and time " + std::to_string(m_time);
+    legend.setString(text_legend);
+    legend.setFillColor(sf::Color::White);
+    legend.setPosition(0.0f, m_window_size);
+    legend.setCharacterSize(20);
+
+    // the right panel
+    sf::Text panel;
+    panel.setFont(font);
+    std::string text_panel = "Parameters of the experiment : \n";
+    text_panel += "Title : " + std::string(m_title) + "\n";
+    text_panel += "Map : (" + std::to_string(m_window_size) + "," +
+                  std::to_string(m_window_size) + ")\n";
+    text_panel += "Max number of birds : " + std::to_string(MICE_NUMBER) + "\n";
+    text_panel +=
+        "Duration of the day : " + std::to_string(m_duration_day) + "\n";
+    text_panel +=
+        "Reproduction rate : " + std::to_string(m_evolutive_pressure) + "\n";
+    text_panel +=
+        "Mutation size : " + std::to_string(m_mutation_strength) + "\n";
+    // text_panel +=
+    //     "Size of the safe zone : " + std::to_string(m_safe_zone.radius) +
+    //     "\n";
+    text_panel +=
+        "Size of the predator : " + std::to_string(m_predator.radius) + "\n";
+    // text_panel +=
+    //     "Speed of the predator : " + std::to_string(m_predator.speed) + "\n";
+    text_panel += "\n";
+    text_panel += "Day : " + std::to_string(m_day) +
+                  ", Time :  " + std::to_string(m_time) + "\n";
+    // text_panel +=
+    //     "Remaining birds : " + std::to_string(m_map.get_nb_alive_birds()) +
+    //     "\n";
+
+    panel.setString(text_panel);
+    panel.setFillColor(sf::Color::White);
+    panel.setPosition(m_window_size + 10, 0.0f);
+    panel.setCharacterSize(20);
+
+    // the black boundary
+    sf::RectangleShape boundary_right(
+        sf::Vector2f(space_right, m_window_size + space_bottom));
+    boundary_right.setPosition(m_window_size, 0.0f);
+    boundary_right.setFillColor(sf::Color::Black);
+
+    sf::RectangleShape boundary_down(sf::Vector2f(m_window_size, space_bottom));
+    boundary_down.setPosition(0.0f, m_window_size);
+    boundary_down.setFillColor(sf::Color::Black);
+
+    // the lines around the map
+    sf::Vertex line_bottom[] = {
+        sf::Vertex(sf::Vector2f(0.0f, m_window_size)),
+        sf::Vertex(sf::Vector2f(m_window_size, m_window_size))};
+
+    sf::Vertex line_right[] = {
+        sf::Vertex(sf::Vector2f(m_window_size, 0.0f)),
+        sf::Vertex(sf::Vector2f(m_window_size, m_window_size))};
+    window->draw(boundary_right);
+    window->draw(boundary_down);
+    window->draw(line_bottom, 2, sf::Lines);
+    window->draw(line_right, 2, sf::Lines);
+
+    window->draw(panel);
+    window->draw(legend);
+  }
 
   void resume();
 

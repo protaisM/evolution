@@ -1,10 +1,7 @@
-#include "brain.h"
 #include "experiment.h"
 #include "map.h"
 #include "mouse.h"
 
-#include <array>
-#include <iostream>
 
 int main() {
   srand(time(NULL));
@@ -19,7 +16,7 @@ int main() {
   //   brain.print();
   // }
 
-  Square my_map(3);
+  Square my_map(1);
   // SimpleMouse my_mouse([&my_map]() { return my_map.rnd_position(); }, 1, 1);
   // SimpleMouse other_one = my_mouse;
   // other_one.mutate(0.5);
@@ -33,7 +30,7 @@ int main() {
   // other_one.print();
 
   Experiment<SimpleMouse, Predator, Square, 100> my_experiment("Test", my_map);
-  my_experiment.run_on_background(0.1);
+  my_experiment.run_and_display(0.001);
 
   return 0;
 }
