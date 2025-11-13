@@ -37,8 +37,8 @@ protected:
   Color m_color;
 
 public:
-  BaseMouse(double max_angle, double sight_radius,
-            std::function<Position()> rnd_pos_generator)
+  BaseMouse(std::function<Position()> rnd_pos_generator, double max_angle,
+            double sight_radius)
       : m_position(rnd_pos_generator()), m_is_alive(true), m_velocity(0),
         m_max_angle(max_angle), m_angle(rand_angle()),
         m_sight_radius(sight_radius), m_brain(3) {
@@ -112,9 +112,9 @@ class SimpleMouse : public BaseMouse<4, 2, 20, 100> {
    */
 
 public:
-  SimpleMouse(double max_angle, double sight_radius,
-              std::function<Position()> rnd_pos_generator)
-      : BaseMouse<4, 2, 20, 100>(max_angle, sight_radius, rnd_pos_generator) {}
+  SimpleMouse(std::function<Position()> rnd_pos_generator, double max_angle = 1,
+              double sight_radius = 0.1)
+      : BaseMouse<4, 2, 20, 100>(rnd_pos_generator, max_angle, sight_radius) {}
 
   SimpleMouse() : BaseMouse<4, 2, 20, 100>() {}
 
