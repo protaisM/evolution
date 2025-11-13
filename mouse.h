@@ -1,21 +1,18 @@
 #pragma once
 
 #include "brain.h"
+#include "map.h"
 
 // #include <SFML/Graphics.hpp>
 // #include <SFML/Graphics/RenderWindow.hpp>
 #include <array>
 #include <cmath>
+#include <functional>
 
 struct Color {
   int r;
   int g;
   int b;
-};
-
-struct Position {
-  double x;
-  double y;
 };
 
 inline double rand_pos() { return (double)std::rand() / ((double)RAND_MAX); }
@@ -41,8 +38,8 @@ protected:
 
 public:
   BaseMouse(double max_angle, double sight_radius,
-            Position (*rnd_pos_generator)())
-      : m_position((*rnd_pos_generator)()), m_is_alive(true), m_velocity(0),
+            std::function<Position()> rnd_pos_generator)
+      : m_position(rnd_pos_generator()), m_is_alive(true), m_velocity(0),
         m_max_angle(max_angle), m_angle(rand_angle()),
         m_sight_radius(sight_radius), m_brain(3) {
     m_color.r = std::rand() % 255;
@@ -59,21 +56,23 @@ public:
   void kill() { m_is_alive = false; }
 
 protected:
-  std::array<double, 2> get_next_position(double dt) {
-    std::array<double, 2> pos({m_position.x, m_position.y});
-    pos[0] += dt * std::cos(m_angle) * m_velocity;
-    pos[1] += dt * std::sin(m_angle) * m_velocity;
+  Position get_next_position(double dt) {
+    Position pos({m_position.x, m_position.y});
+    pos.x += dt * std::cos(m_angle) * m_velocity;
+    pos.y += dt * std::sin(m_angle) * m_velocity;
     return pos;
   }
 
-  void update_position(double dt) {
+  void update_position(double dt, std::function<bool(Position)> is_in_map) {
     // given the new angle and the new velocity, update the position
     if (!m_is_alive) {
       std::cerr << "This bird is not alive" << std::endl;
     }
-    std::array<double, 2> pos(get_next_position(dt));
-    m_position.x = pos[0];
-    m_position.y = pos[1];
+    Position next_pos(get_next_position(dt));
+    if (is_in_map(next_pos)) {
+      m_position.x = next_pos.x;
+      m_position.y = next_pos.y;
+    }
   }
 
   // void draw(sf::RenderWindow *window) const {
@@ -93,9 +92,10 @@ protected:
   }
 
 public:
-  void advance(double dt, std::array<double, NB_IN_NODES> input) {
+  void advance(double dt, std::array<double, NB_IN_NODES> input,
+               std::function<bool(Position)> is_in_map) {
     update_angle_and_velocity(input);
-    update_position(dt);
+    update_position(dt, is_in_map);
   }
 
   void mutate(double mutation_strength) { m_brain.mutate(mutation_strength); }
@@ -112,9 +112,8 @@ class SimpleMouse : public BaseMouse<2, 2, 20, 100> {
 
 public:
   SimpleMouse(double max_angle, double sight_radius,
-              Position (*rnd_pos_generator)())
-      : BaseMouse<2, 2, 20, 100>(max_angle, sight_radius,
-                                 (*rnd_pos_generator)) {}
+              std::function<Position()> rnd_pos_generator)
+      : BaseMouse<2, 2, 20, 100>(max_angle, sight_radius, rnd_pos_generator) {}
 
   SimpleMouse() : BaseMouse<2, 2, 20, 100>() {}
 

@@ -1,45 +1,43 @@
 #pragma once
 
-#include <SFML/Graphics.hpp>
+// #include <SFML/Graphics.hpp>
 #include <array>
 #include <cmath>
 
-#include "mouse.h"
-
-struct Safe_zone {
+struct Position {
   double x;
   double y;
-  double radius;
-
-  void draw(sf::RenderWindow *window) const {
-    sf::CircleShape safe(radius);
-    safe.setPosition(x, y);
-    safe.setFillColor(sf::Color(0, 255, 0, 100));
-    safe.setOrigin(radius, radius);
-    window->draw(safe);
-  }
-
-  bool is_in(std::array<double, 2>) const;
 };
 
-template <unsigned int MAX_MICES_NUMBER, typename Mouse> class Map {
-protected:
-  std::array<Mouse, MAX_MICES_NUMBER> m_mices;
-  unsigned int m_nb_mices;
-  unsigned int m_nb_alive_mices;
+class Map {
+public:
+  virtual bool is_in(Position) const = 0;
+  virtual Position rnd_position() const = 0;
+  virtual double distance(Position, Position) const = 0;
+};
+
+class Square : public Map {
+private:
+  double m_side_length;
 
 public:
-  bool is_in_map(std::array<double, 2> position) const;
-  void do_one_step(std::array<double, 4>, double dt);
-  void reproduce_alive(double, bool);
-  void kill_birds_in_circle(double, double, double);
-  std::array<double, 2> get_nearest_alive_bird(std::array<double, 2>) const;
-  std::array<double, 2> get_nearest_alive_bird(std::array<double, 2>,
-                                               Safe_zone) const;
+  Square(double side_length) : m_side_length(side_length) {}
 
-  unsigned int get_nb_alive_birds() const;
+  virtual bool is_in(Position pos) const {
+    if (pos.x < 0 or pos.x > m_side_length or pos.y < 0 or
+        pos.y > m_side_length) {
+      return false;
+    }
+    return true;
+  }
 
-  void draw(sf::RenderWindow *) const;
+  virtual Position rnd_position() const {
+    Position result;
+    result.x = ((double)std::rand() / ((double)RAND_MAX)) * m_side_length;
+    result.y = ((double)std::rand() / ((double)RAND_MAX)) * m_side_length;
+    return result;
+  }
+  virtual double distance(Position p1, Position p2) const {}
 };
 /*
 
