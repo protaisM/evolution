@@ -84,7 +84,7 @@ protected:
   //   window->draw(to_display);
   // }
 
-  virtual void update_angle_and_velocity(std::array<double, NB_IN_NODES>) = 0;
+  virtual void update_angle_and_velocity(Position predator_position) = 0;
 
   virtual void print() {
     std::cout << "I'm just a base mouse, surely this is a mistake!"
@@ -92,9 +92,9 @@ protected:
   }
 
 public:
-  void advance(double dt, std::array<double, NB_IN_NODES> input,
+  void advance(double dt, Position predator_position,
                std::function<bool(Position)> is_in_map) {
-    update_angle_and_velocity(input);
+    update_angle_and_velocity(predator_position);
     update_position(dt, is_in_map);
   }
 
@@ -127,9 +127,9 @@ public:
 
 protected:
   virtual void
-  update_angle_and_velocity(std::array<double, 2> predator_position) override {
-    double dist_x = predator_position[0] - m_position.x;
-    double dist_y = predator_position[1] - m_position.y;
+  update_angle_and_velocity(Position predator_position) override {
+    double dist_x = predator_position.x - m_position.x;
+    double dist_y = predator_position.y - m_position.y;
     double dist = std::sqrt((dist_x) * (dist_x) + (dist_y) * (dist_y));
     std::array<double, 2> output_from_brain;
     if (dist <= m_sight_radius) {
