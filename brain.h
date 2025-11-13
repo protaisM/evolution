@@ -109,13 +109,13 @@ public:
     for (unsigned int i = 0; i < m_nb_connections; i++) {
       Connection current_connection = m_connections[i];
       m_nodes[current_connection.idx_node_out].add_to_value(
-          tanh(current_connection.weight *
+          std::tanh(current_connection.weight *
                    m_nodes[current_connection.idx_node_in].get_value() +
                current_connection.shift));
     }
     std::array<double, NB_OUT_NODES> output;
     for (unsigned int i = 0; i < NB_OUT_NODES; i++) {
-      output[i] = tanh(m_nodes[i + NB_IN_NODES].get_value());
+      output[i] = std::tanh(m_nodes[i + NB_IN_NODES].get_value());
     }
     return output;
   }
