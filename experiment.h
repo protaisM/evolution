@@ -94,6 +94,20 @@ public:
     in.read(reinterpret_cast<char *>(this), sizeof(*this));
     in.close();
   }
+  //  Function for Deserialization
+  static Experiment<Mouse, Predator, Map, MICE_NUMBER>
+  deserialize(const std::string &filename, char title[40], Map map) {
+    Experiment<Mouse, Predator, Map, MICE_NUMBER> obj(title, map);
+    std::ifstream file(filename, std::ios::binary);
+    if (!file.is_open()) {
+      std::cerr << "Error: Failed to open file for reading." << std::endl;
+      return obj;
+    }
+    file.read(reinterpret_cast<char *>(&obj), sizeof(obj));
+    file.close();
+    std::cout << "Object deserialized successfully." << std::endl;
+    return obj;
+  }
 
 private:
   void do_one_step(double dt) {
@@ -330,12 +344,13 @@ private:
   }
 
   void save_current_state() {
-    std::fstream out(m_title, std::ios::out | std::ios::binary);
-    if (!out.is_open()) {
-      std::cerr << "\a\n\nFile not created\n\n";
+    std::ofstream file(m_title, std::ios::binary);
+    if (!file.is_open()) {
+      std::cerr << "Error: Failed to open file for writing." << std::endl;
       return;
     }
-    out.write(reinterpret_cast<char *>(this), sizeof(*this));
-    out.close();
+    file.write(reinterpret_cast<const char *>(this), sizeof(*this));
+    file.close();
+    std::cout << "Object serialized successfully." << std::endl;
   }
 };
