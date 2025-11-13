@@ -101,10 +101,11 @@ public:
   void mutate(double mutation_strength) { m_brain.mutate(mutation_strength); }
 };
 
-class SimpleMouse : public BaseMouse<2, 2, 20, 100> {
+class SimpleMouse : public BaseMouse<4, 2, 20, 100> {
   /* A simple mouse has a small brain:
    * it can simply handle the distance to the predator,
-   * and the angle at which it sees it. It outputs the new velocity,
+   * and the angle at which it sees it. Of course it is also conscious
+   * of its own position. It outputs the new velocity,
    * and the change in angle.
    * We cap the number of neurons to 20, and the number of
    * connections to 100.
@@ -113,9 +114,9 @@ class SimpleMouse : public BaseMouse<2, 2, 20, 100> {
 public:
   SimpleMouse(double max_angle, double sight_radius,
               std::function<Position()> rnd_pos_generator)
-      : BaseMouse<2, 2, 20, 100>(max_angle, sight_radius, rnd_pos_generator) {}
+      : BaseMouse<4, 2, 20, 100>(max_angle, sight_radius, rnd_pos_generator) {}
 
-  SimpleMouse() : BaseMouse<2, 2, 20, 100>() {}
+  SimpleMouse() : BaseMouse<4, 2, 20, 100>() {}
 
   virtual void print() override {
     std::cout << "A simple mouse at position (" << m_position.x << ","
@@ -126,16 +127,16 @@ public:
   }
 
 protected:
-  virtual void
-  update_angle_and_velocity(Position predator_position) override {
+  virtual void update_angle_and_velocity(Position predator_position) override {
     double dist_x = predator_position.x - m_position.x;
     double dist_y = predator_position.y - m_position.y;
     double dist = std::sqrt((dist_x) * (dist_x) + (dist_y) * (dist_y));
     std::array<double, 2> output_from_brain;
     if (dist <= m_sight_radius) {
-      output_from_brain = m_brain.activate({dist, std::atan(dist_y / dist_x)});
+      output_from_brain = m_brain.activate(
+          {dist, std::atan(dist_y / dist_x), m_position.x, m_position.y});
     } else {
-      output_from_brain = m_brain.activate({-1, 0});
+      output_from_brain = m_brain.activate({-1, 0, m_position.x, m_position.y});
     }
     m_velocity = std::abs(output_from_brain[0]);
     m_angle += m_max_angle * output_from_brain[1];

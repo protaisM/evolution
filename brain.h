@@ -102,7 +102,6 @@ public:
   std::array<double, NB_OUT_NODES>
   activate(std::array<double, NB_IN_NODES> input) {
     set_to_zero();
-    print();
     for (unsigned int i = 0; i < NB_IN_NODES; i++) {
       m_nodes[i].set_value(input[i]);
     }

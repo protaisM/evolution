@@ -25,9 +25,10 @@ int main() {
   my_mouse.advance(0.1, {0.1, 0.4},
                    [&my_map](Position pos) { return my_map.is_in(pos); });
   my_mouse.print();
-  // other_one.print();
-  // other_one.advance(0.1, {0.1, 0.4});
-  // other_one.print();
+  other_one.print();
+  other_one.advance(0.1, {0.1, 0.4},
+                   [&my_map](Position pos) { return my_map.is_in(pos); });
+  other_one.print();
 
   return 0;
 }
