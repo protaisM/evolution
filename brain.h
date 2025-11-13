@@ -6,6 +6,11 @@
 #include <vector>
 
 inline unsigned int rnd_int_smaller_than(unsigned int bound) {
+  if (bound <= 0) {
+    std::cout << "Seems like the bound in rnd_int_smaller_than is <= 0"
+              << std::endl;
+    return 0;
+  }
   return rand() % bound;
 }
 
@@ -109,8 +114,8 @@ public:
       Connection current_connection = m_connections[i];
       m_nodes[current_connection.idx_node_out].add_to_value(
           std::tanh(current_connection.weight *
-                   m_nodes[current_connection.idx_node_in].get_value() +
-               current_connection.shift));
+                        m_nodes[current_connection.idx_node_in].get_value() +
+                    current_connection.shift));
     }
     std::array<double, NB_OUT_NODES> output;
     for (unsigned int i = 0; i < NB_OUT_NODES; i++) {

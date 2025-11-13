@@ -46,8 +46,7 @@ public:
 
   BaseMouse() : m_is_alive(false) {}
 
-  double get_x() const { return m_position.x; }
-  double get_y() const { return m_position.y; }
+  Position get_position() const { return m_position; }
   double get_angle() const { return m_angle; }
   bool is_alive() const { return m_is_alive; }
   void kill() { m_is_alive = false; }
@@ -133,7 +132,7 @@ protected:
     std::array<double, 2> output_from_brain;
     if (dist <= m_sight_radius) {
       output_from_brain = m_brain.activate(
-          {dist, std::atan(dist_y / dist_x), m_position.x, m_position.y});
+          {dist, std::atan2(dist_y, dist_x), m_position.x, m_position.y});
     } else {
       output_from_brain = m_brain.activate({-1, 0, m_position.x, m_position.y});
     }
