@@ -38,6 +38,10 @@ struct Cat {
     return false;
   }
 
+  void randomize_position(std::function<Position()> rnd_pos_generator) {
+    m_position = rnd_pos_generator();
+  }
+
   void draw(sf::RenderWindow *window, double window_size) const {
     sf::CircleShape death(m_radius * window_size);
     death.setPosition(m_position.x * window_size, m_position.y * window_size);

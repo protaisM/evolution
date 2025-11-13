@@ -7,6 +7,7 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <array>
 #include <cmath>
+#include <cstdlib>
 #include <functional>
 
 struct Color {
@@ -89,7 +90,36 @@ public:
     update_position(dt, is_in_map);
   }
 
-  void mutate(double mutation_strength) { m_brain.mutate(mutation_strength); }
+  void mutate(double mutation_strength) {
+    m_brain.mutate(mutation_strength);
+    unsigned int rnd = rnd_int_smaller_than(6);
+    switch (rnd) {
+    case 0: {
+      m_color.r += 1;
+      break;
+    }
+    case 1: {
+      m_color.r -= 1;
+      break;
+    }
+    case 2: {
+      m_color.g += 1;
+      break;
+    }
+    case 3: {
+      m_color.g -= 1;
+      break;
+    }
+    case 4: {
+      m_color.b += 1;
+      break;
+    }
+    case 5: {
+      m_color.b -= 1;
+      break;
+    }
+    }
+  }
 
   void draw(sf::RenderWindow *window, double zoom) const {
     sf::CircleShape to_display;

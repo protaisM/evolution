@@ -51,7 +51,7 @@ private:
 public:
   Experiment(char title[40], Map map, double predator_radius = 0.1,
              unsigned int evolutive_pressure = 4,
-             double mutation_strength = 0.1, int duration_day = 200)
+             double mutation_strength = 0.1, int duration_day = 100)
       : m_evolutive_pressure(evolutive_pressure),
         m_mutation_strength(mutation_strength), m_duration_day(duration_day),
         m_nb_alive_mices(MICE_NUMBER), m_map(map), m_time(0.0), m_day(0) {
@@ -91,7 +91,6 @@ private:
                          [this](Position pos) { return m_map.is_in(pos); });
       if (m_predator.is_in_death_zone(m_mices[i].get_position())) {
         m_mices[i].kill();
-        std::cout << "Killed " << std::endl;
         m_nb_alive_mices--;
       }
     }
@@ -99,6 +98,7 @@ private:
     if (condition_end_of_day()) {
       reproduce_alive();
       //   move_safe_zone();
+      m_predator.randomize_position([this]() { return m_map.rnd_position(); });
       m_day++;
       m_time -= m_time;
       //   save_current_state();
