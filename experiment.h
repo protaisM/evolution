@@ -69,7 +69,7 @@ private:
   unsigned int m_nb_alive_mices;
   // Safe_zone m_safe_zone;
 
-  unsigned int m_time;
+  double m_time;
   unsigned int m_day;
 
   // constant parameters
@@ -78,17 +78,17 @@ private:
   const unsigned int m_evolutive_pressure;
   const double m_mutation_strength;
   const int m_duration_day;
-  const double m_window_size = 900;
+  const double m_window_size = 960;
 
 public:
   Experiment(char title[40], Map map, unsigned int evolutive_pressure = 4,
              double mutation_strength = 0.1, int duration_day = 20000)
       : m_evolutive_pressure(evolutive_pressure),
         m_mutation_strength(mutation_strength), m_duration_day(duration_day),
-        m_nb_alive_mices(MICE_NUMBER), m_map(map), m_time(0), m_day(0) {
+        m_nb_alive_mices(MICE_NUMBER), m_map(map), m_time(0.0), m_day(0) {
     strcpy(m_title, title);
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
-      m_mices[i] = Mouse([&map]() { return map.rnd_position(); }, 1, 1);
+      m_mices[i] = Mouse([&map]() { return map.rnd_position(); });
     }
     // predator
   }
@@ -110,6 +110,7 @@ public:
 
 private:
   void do_one_step(double dt) {
+    m_time = m_time + dt;
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
       if (!m_mices[i].is_alive()) {
         continue;
@@ -190,18 +191,20 @@ private:
     case 1:
       for (size_t i = 0; i < MICE_NUMBER; i++) {
         if (m_mices[i].is_alive()) {
-
           m_mices[i].draw(window, m_window_size);
         }
       }
-      // m_map.draw(window);
       // m_predator.draw(window);
       // m_safe_zone.draw(window);
       draw_legend(window, space_right, space_bottom);
       window->display();
       break;
     case 2:
-      // m_map.draw(window);
+      for (size_t i = 0; i < MICE_NUMBER; i++) {
+        if (m_mices[i].is_alive()) {
+          m_mices[i].draw(window, m_window_size);
+        }
+      }
       // m_predator.draw(window);
       // m_safe_zone.draw(window);
       window->display();
@@ -209,8 +212,6 @@ private:
     case 3:
       draw_legend(window, space_right, space_bottom);
       window->display();
-      break;
-    case 4:
       break;
     default:
       break;
@@ -226,9 +227,8 @@ private:
     sf::Text legend;
     legend.setFont(font);
     std::string text_legend =
-        //     " Birds alive : " + std::to_string(m_map.get_nb_alive_birds()) +
-        //     "\n";
-        // text_legend +=
+        " Mices alive : " + std::to_string(m_nb_alive_mices) + "\n";
+    text_legend +=
         " Day " + std::to_string(m_day) + " and time " + std::to_string(m_time);
     legend.setString(text_legend);
     legend.setFillColor(sf::Color::White);
@@ -240,28 +240,27 @@ private:
     panel.setFont(font);
     std::string text_panel = "Parameters of the experiment : \n";
     text_panel += "Title : " + std::string(m_title) + "\n";
-    text_panel += "Map : (" + std::to_string(m_window_size) + "," +
+    text_panel += "Zoom : (" + std::to_string(m_window_size) + "," +
                   std::to_string(m_window_size) + ")\n";
-    text_panel += "Max number of birds : " + std::to_string(MICE_NUMBER) + "\n";
+    text_panel += "Max number of mices : " + std::to_string(MICE_NUMBER) + "\n";
     text_panel +=
         "Duration of the day : " + std::to_string(m_duration_day) + "\n";
     text_panel +=
-        "Reproduction rate : " + std::to_string(m_evolutive_pressure) + "\n";
+        "Evolutive pressure : " + std::to_string(m_evolutive_pressure) + "\n";
     text_panel +=
-        "Mutation size : " + std::to_string(m_mutation_strength) + "\n";
+        "Mutation strength : " + std::to_string(m_mutation_strength) + "\n";
     // text_panel +=
     //     "Size of the safe zone : " + std::to_string(m_safe_zone.radius) +
     //     "\n";
     text_panel +=
         "Size of the predator : " + std::to_string(m_predator.radius) + "\n";
-    // text_panel +=
-    //     "Speed of the predator : " + std::to_string(m_predator.speed) + "\n";
+    text_panel +=
+        "Speed of the predator : " + std::to_string(m_predator.velocity) + "\n";
     text_panel += "\n";
     text_panel += "Day : " + std::to_string(m_day) +
                   ", Time :  " + std::to_string(m_time) + "\n";
-    // text_panel +=
-    //     "Remaining birds : " + std::to_string(m_map.get_nb_alive_birds()) +
-    //     "\n";
+    text_panel +=
+        "Remaining mices : " + std::to_string(m_nb_alive_mices) + "\n";
 
     panel.setString(text_panel);
     panel.setFillColor(sf::Color::White);

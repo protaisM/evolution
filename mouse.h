@@ -31,17 +31,14 @@ protected:
 
   // normalised to 1
   double m_sight_radius;
-  // in [0,360]
-  double m_max_angle;
+  double m_max_angle = 2 * M_PI;
   bool m_is_alive;
   Color m_color;
 
 public:
-  BaseMouse(std::function<Position()> rnd_pos_generator, double max_angle,
-            double sight_radius)
+  BaseMouse(std::function<Position()> rnd_pos_generator, double sight_radius)
       : m_position(rnd_pos_generator()), m_is_alive(true), m_velocity(0),
-        m_max_angle(max_angle), m_angle(rand_angle()),
-        m_sight_radius(sight_radius), m_brain(3) {
+        m_angle(rand_angle()), m_sight_radius(sight_radius), m_brain(3) {
     m_color.r = std::rand() % 255;
     m_color.g = std::rand() % 255;
     m_color.b = std::rand() % 255;
@@ -75,7 +72,8 @@ protected:
     }
   }
 
-  virtual void update_angle_and_velocity(Position predator_position) = 0;
+  virtual void update_angle_and_velocity(Position predator_position,
+                                         double dt) = 0;
 
   virtual void print() {
     std::cout << "I'm just a base mouse, surely this is a mistake!"
@@ -85,7 +83,7 @@ protected:
 public:
   void advance(double dt, Position predator_position,
                std::function<bool(Position)> is_in_map) {
-    update_angle_and_velocity(predator_position);
+    update_angle_and_velocity(predator_position, dt);
     update_position(dt, is_in_map);
   }
 
@@ -112,9 +110,9 @@ class SimpleMouse : public BaseMouse<4, 2, 20, 100> {
    */
 
 public:
-  SimpleMouse(std::function<Position()> rnd_pos_generator, double max_angle = 1,
-              double sight_radius = 0.1)
-      : BaseMouse<4, 2, 20, 100>(rnd_pos_generator, max_angle, sight_radius) {}
+  SimpleMouse(std::function<Position()> rnd_pos_generator,
+              double sight_radius = 0.5)
+      : BaseMouse<4, 2, 20, 100>(rnd_pos_generator, sight_radius) {}
 
   SimpleMouse() : BaseMouse<4, 2, 20, 100>() {}
 
@@ -127,7 +125,8 @@ public:
   }
 
 protected:
-  virtual void update_angle_and_velocity(Position predator_position) override {
+  virtual void update_angle_and_velocity(Position predator_position,
+                                         double dt) override {
     double dist_x = predator_position.x - m_position.x;
     double dist_y = predator_position.y - m_position.y;
     double dist = std::sqrt((dist_x) * (dist_x) + (dist_y) * (dist_y));
@@ -139,7 +138,7 @@ protected:
       output_from_brain = m_brain.activate({-1, 0, m_position.x, m_position.y});
     }
     m_velocity = std::abs(output_from_brain[0]);
-    m_angle += m_max_angle * output_from_brain[1];
+    m_angle += dt * m_max_angle * output_from_brain[1];
     if (m_angle < 0)
       m_angle += 2 * M_PI;
     if (m_angle > 2 * M_PI)
