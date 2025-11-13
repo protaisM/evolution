@@ -50,6 +50,9 @@ public:
   double get_angle() const { return m_angle; }
   bool is_alive() const { return m_is_alive; }
   void kill() { m_is_alive = false; }
+  void randomize_position(std::function<Position()> rnd_pos_generator) {
+    m_position = rnd_pos_generator();
+  }
 
 protected:
   Position get_next_position(double dt) {

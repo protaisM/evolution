@@ -117,62 +117,38 @@ private:
     }
     unsigned int reproduction_rate =
         std::min(MICE_NUMBER / m_nb_alive_mices, m_evolutive_pressure);
-    // std::cout << "nb_birds=" << m_nb_birds << " and nb_alive = " <<
-    // m_nb_alive_birds << std::endl; std::cout << "the reproduction rate is : "
-    // << reproduction_rate<< std::endl; size_t writing_index=0;
     size_t index_alive_mouse = 0;
     size_t index;
-    // std::cout << "we have max " << m_nb_birds << " and currently" <<
-    // m_nb_alive_birds <<std::endl;
     std::array<Mouse, MICE_NUMBER> new_mices;
     for (unsigned int reading_index = 0; reading_index < MICE_NUMBER;
          reading_index++) {
       if (!m_mices[reading_index].is_alive()) {
-        std::cout << " dead mouse " << std::endl;
         continue;
       }
       for (size_t i = 0; i < reproduction_rate; i++) {
-        std::cout << "we try to access "
-                  << index_alive_mouse * reproduction_rate + i << std::endl;
         index = index_alive_mouse * reproduction_rate + i;
-        std::cout << "Reading index = " << reading_index
-                  << " for alive mice = " << index_alive_mouse << std::endl;
         if (index_alive_mouse >= m_nb_alive_mices) {
           std::cerr << "Error in the count of alive mices" << std::endl;
           exit(0);
-          return;
         }
         if (index >= MICE_NUMBER) {
           std::cerr << "Error in the reproduction" << std::endl;
           exit(0);
-          return;
         }
         new_mices[index] = m_mices[reading_index];
-        std::cout << "index: " << index << std::endl;
-        // new_mices[index].print();
         new_mices[index].mutate(m_mutation_strength);
-        // new_mices[index].print();
-        // if (rnd) {
-        //   new_birds.at(index).setPosition(
-        //       {rand_0to1() * m_width, rand_0to1() * m_height});
-        // }
-        // writing_index++;
+        new_mices[index].randomize_position(
+            [this]() { return m_map.rnd_position(); });
       }
-      // std::cout << "We ended at index : " <<
-      // index_alive_bird*reproduction_rate+3<<std::endl;
       index_alive_mouse++;
     }
     m_mices = new_mices;
     m_nb_alive_mices = index + 1;
-    std::cout << " All done !! " << std::endl << std::endl;
   }
 
   // void save_brain_to_file(/*ostream ?*/);
   // void save_current_state();
   // void run_on_window(sf::RenderWindow *);
-
-  // void draw(sf::RenderWindow *, int, int, int) const;
-  // void draw_legend(sf::RenderWindow *, int, int) const;
 
   void run_on_window(sf::RenderWindow *window, double dt) {
     int screen = 1;

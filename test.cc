@@ -17,19 +17,19 @@ int main() {
   // }
 
   Square my_map(1);
-  SimpleMouse my_mouse([&my_map]() { return my_map.rnd_position(); });
-  SimpleMouse other_one = my_mouse;
-  other_one.mutate(0.5);
-  my_mouse.print();
-  my_mouse.advance(0.1, {0.1, 0.4},
-                   [&my_map](Position pos) { return my_map.is_in(pos); });
-  my_mouse.print();
-  other_one.print();
-  other_one.advance(0.1, {0.1, 0.4},
-                    [&my_map](Position pos) { return my_map.is_in(pos); });
-  other_one.print();
+  // SimpleMouse my_mouse([&my_map]() { return my_map.rnd_position(); });
+  // SimpleMouse other_one = my_mouse;
+  // other_one.mutate(0.5);
+  // my_mouse.print();
+  // my_mouse.advance(0.1, {0.1, 0.4},
+  //                  [&my_map](Position pos) { return my_map.is_in(pos); });
+  // my_mouse.print();
+  // other_one.print();
+  // other_one.advance(0.1, {0.1, 0.4},
+  //                   [&my_map](Position pos) { return my_map.is_in(pos); });
+  // other_one.print();
 
-  Experiment<SimpleMouse, Cat, Square, 100> my_experiment("Test", my_map);
+  Experiment<SimpleMouse, Cat, Square, 1000> my_experiment("Test", my_map);
   my_experiment.run_and_display(0.01);
 
   return 0;
