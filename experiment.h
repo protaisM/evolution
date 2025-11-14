@@ -58,7 +58,8 @@ public:
              double mouse_radius = 0.3, unsigned int evolutive_pressure = 4,
              double mutation_strength = 0.1, int duration_generation = 100)
       : m_evolutive_pressure(evolutive_pressure),
-        m_mutation_strength(mutation_strength), m_duration_generation(duration_generation),
+        m_mutation_strength(mutation_strength),
+        m_duration_generation(duration_generation),
         m_nb_alive_mice(MICE_NUMBER), m_map(map), m_time(0.0), m_generation(0) {
     strcpy(m_title, title);
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
@@ -184,7 +185,7 @@ private:
         handle_event(window, evnt, screen);
       }
       do_one_step(dt);
-      draw(window, screen, space_right, space_bottom);
+      draw(window, screen, space_right, space_bottom, dt);
     }
   }
   void handle_event(sf::RenderWindow *window, sf::Event evnt, Screen &display) {
@@ -214,7 +215,7 @@ private:
   }
 
   void draw(sf::RenderWindow *window, Screen display, int space_right,
-            int space_bottom) const {
+            int space_bottom, double dt) const {
     window->clear();
     switch (display) {
     case FULL:
@@ -225,7 +226,7 @@ private:
       }
       m_predator.draw(window, m_window_size);
       // m_safe_zone.draw(window);
-      draw_legend(window, space_right, space_bottom);
+      draw_legend(window, space_right, space_bottom, dt);
       window->display();
       break;
     case ONLY_MAP:
@@ -239,7 +240,7 @@ private:
       window->display();
       break;
     case ONLY_LEGEND:
-      draw_legend(window, space_right, space_bottom);
+      draw_legend(window, space_right, space_bottom, dt);
       window->display();
       break;
     case EMPTY:
@@ -250,7 +251,7 @@ private:
   }
 
   void draw_legend(sf::RenderWindow *window, int space_right,
-                   int space_bottom) const {
+                   int space_bottom, double dt) const {
     sf::Font font;
     font.loadFromFile("UbuntuMono-R.ttf");
 
@@ -258,9 +259,11 @@ private:
     sf::Text legend;
     legend.setFont(font);
     std::string text_legend =
-        " Mice alive : " + std::to_string(m_nb_alive_mice) + "\n";
-    text_legend +=
-        " Generation " + std::to_string(m_generation) + " and time " + std::to_string(m_time);
+        " Mice alive: " + std::to_string(m_nb_alive_mice) + " / " +
+        std::to_string(MICE_NUMBER) + "\n";
+    text_legend += " Generation " + std::to_string(m_generation) +
+                   " and time " + std::to_string(m_time) + " / " +
+                   std::to_string(m_duration_generation);
     legend.setString(text_legend);
     legend.setFillColor(sf::Color::White);
     legend.setPosition(0.0f, m_window_size);
@@ -269,24 +272,24 @@ private:
     // the right panel
     sf::Text panel;
     panel.setFont(font);
-    std::string text_panel = "Parameters of the experiment : \n";
-    text_panel += "Title : " + std::string(m_title) + "\n";
-    text_panel += "Zoom : (" + std::to_string(m_window_size) + "," +
-                  std::to_string(m_window_size) + ")\n";
-    text_panel += "Max number of mice : " + std::to_string(MICE_NUMBER) + "\n";
+    std::string text_panel = "Parameters of the experiment: \n";
     text_panel +=
-        "Duration of a generation: " + std::to_string(m_duration_generation) + "\n";
+        "Evolutive pressure: " + std::to_string(m_evolutive_pressure) + "\n";
     text_panel +=
-        "Evolutive pressure : " + std::to_string(m_evolutive_pressure) + "\n";
+        "Mutation strength: " + std::to_string(m_mutation_strength) + "\n";
     text_panel +=
-        "Mutation strength : " + std::to_string(m_mutation_strength) + "\n";
+        "Mice sight radius: " + std::to_string(m_mice[0].get_sight_radius()) +
+        "\n";
+    text_panel +=
+        "Mice velocity: " + std::to_string(m_mice[0].get_velocity()) + "\n";
+    text_panel += "dt = " + std::to_string(dt) + "\n";
     // text_panel +=
     //     "Size of the safe zone : " + std::to_string(m_safe_zone.radius) +
     //     "\n";
     text_panel +=
-        "Size of the predator : " + std::to_string(m_predator.m_radius) + "\n";
+        "Size of the predator: " + std::to_string(m_predator.m_radius) + "\n";
     text_panel +=
-        "Speed of the predator : " + std::to_string(m_predator.m_velocity) +
+        "Speed of the predator: " + std::to_string(m_predator.m_velocity) +
         "\n";
     text_panel += "\n";
 

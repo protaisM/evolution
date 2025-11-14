@@ -55,6 +55,9 @@ public:
     m_position = rnd_pos_generator();
   }
 
+  double get_sight_radius() const { return m_sight_radius; }
+  double get_velocity() const { return m_velocity; }
+
 protected:
   Position get_next_position(double dt) {
     Position pos({m_position.x, m_position.y});
