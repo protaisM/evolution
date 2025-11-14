@@ -2,6 +2,7 @@
 
 // #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
+#include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <cmath>
 
@@ -17,7 +18,7 @@ public:
   virtual Position project_on_map(Position) const = 0;
   virtual double distance(Position, Position) const = 0;
   virtual Position get_center() const = 0;
-  virtual void draw(sf::RenderWindow *window, double window_size) const {}
+  virtual void draw(sf::RenderWindow *window, double window_size) const = 0;
 
   bool has_boundary() { return m_has_boundary; }
 };
@@ -71,6 +72,24 @@ public:
   virtual double distance(Position pos1, Position pos2) const override {
     return norm(pos1 - pos2);
   }
+
+  virtual void draw(sf::RenderWindow *window,
+                    double window_size) const override {
+    sf::Vertex line_bottom[] = {
+        sf::Vertex(sf::Vector2f(0.0f, window_size)),
+        sf::Vertex(sf::Vector2f(window_size, window_size))};
+    sf::Vertex line_right[] = {
+        sf::Vertex(sf::Vector2f(window_size, 0.0f)),
+        sf::Vertex(sf::Vector2f(window_size, window_size))};
+    sf::Vertex line_top[] = {sf::Vertex(sf::Vector2f(1.0f, 1.0f)),
+                             sf::Vertex(sf::Vector2f(1.0f, window_size))};
+    sf::Vertex line_left[] = {sf::Vertex(sf::Vector2f(1.0f, 1.0f)),
+                              sf::Vertex(sf::Vector2f(window_size, 1.0f))};
+    window->draw(line_bottom, 2, sf::Lines);
+    window->draw(line_right, 2, sf::Lines);
+    window->draw(line_top, 2, sf::Lines);
+    window->draw(line_left, 2, sf::Lines);
+  };
 };
 
 class Circle : public Map {
@@ -129,7 +148,7 @@ public:
                         window_size * get_center().y);
     outline.setOutlineColor(sf::Color::White);
     outline.setFillColor(sf::Color::Transparent);
-    outline.setOutlineThickness(1.f);
+    outline.setOutlineThickness(2.f);
     outline.setPointCount(200);
     outline.setOrigin(window_size * get_center().x,
                       window_size * get_center().y);

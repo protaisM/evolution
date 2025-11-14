@@ -19,7 +19,7 @@ struct Run_in_circle {
   double m_angle = 0.0;
 
   Run_in_circle(Map *map, double radius)
-      : m_map(map), m_radius(radius), m_position(map->rnd_position()) {}
+      : m_position(map->rnd_position()), m_map(map), m_radius(radius) {}
 
   Run_in_circle() {}
 
@@ -63,7 +63,7 @@ struct Bounce {
   double m_angle;
 
   Bounce(Map *map, double radius)
-      : m_map(map), m_radius(radius), m_position(map->rnd_position()),
+      : m_position(map->rnd_position()), m_map(map), m_radius(radius),
         m_angle(rand_angle()) {}
 
   Bounce(){}

@@ -56,11 +56,11 @@ public:
   Experiment(const char title[40], Map *map, double predator_radius = 0.1,
              double mouse_radius = 0.3, unsigned int evolutive_pressure = 4,
              double mutation_strength = 0.1, int duration_generation = 200)
-      : m_evolutive_pressure(evolutive_pressure),
+      : m_nb_alive_mice(MICE_NUMBER), m_time(0.0), m_generation(0), m_map(map),
+        m_evolutive_pressure(evolutive_pressure),
         m_mutation_strength(mutation_strength),
-        m_duration_generation(duration_generation),
-        m_nb_alive_mice(MICE_NUMBER), m_map(map), m_time(0.0), m_generation(0),
-        m_window_size(960), m_zoom(1.) {
+        m_duration_generation(duration_generation), m_window_size(960),
+        m_zoom(1.) {
     strcpy(m_title, title);
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
       m_mice[i] = Mouse(m_map, mouse_radius);
@@ -299,17 +299,8 @@ private:
     boundary_down.setFillColor(sf::Color::Black);
 
     // the lines around the map
-    sf::Vertex line_bottom[] = {
-        sf::Vertex(sf::Vector2f(0.0f, m_window_size)),
-        sf::Vertex(sf::Vector2f(m_window_size, m_window_size))};
-
-    sf::Vertex line_right[] = {
-        sf::Vertex(sf::Vector2f(m_window_size, 0.0f)),
-        sf::Vertex(sf::Vector2f(m_window_size, m_window_size))};
     window->draw(boundary_right);
     window->draw(boundary_down);
-    window->draw(line_bottom, 2, sf::Lines);
-    window->draw(line_right, 2, sf::Lines);
 
     window->draw(panel);
     window->draw(legend);

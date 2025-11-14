@@ -9,7 +9,6 @@
 #include <array>
 #include <cmath>
 #include <cstdlib>
-#include <functional>
 
 struct Color {
   int r;
@@ -39,9 +38,8 @@ protected:
 
 public:
   BaseMouse(Map *map, double sight_radius)
-      : m_map(map), m_position(map->rnd_position()), m_is_alive(true),
-        m_velocity(0), m_angle(rand_angle()), m_sight_radius(sight_radius),
-        m_brain(3) {
+      : m_brain(3), m_map(map), m_position(map->rnd_position()), m_velocity(0),
+        m_angle(rand_angle()), m_sight_radius(sight_radius), m_is_alive(true) {
     m_color.r = std::rand() % 255;
     m_color.g = std::rand() % 255;
     m_color.b = std::rand() % 255;
