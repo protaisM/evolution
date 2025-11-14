@@ -8,6 +8,9 @@
 #include "position.h"
 
 class Map {
+protected:
+  bool m_has_boundary;
+
 public:
   virtual bool is_in(Position) const = 0;
   virtual Position rnd_position() const = 0;
@@ -15,6 +18,8 @@ public:
   virtual double distance(Position, Position) const = 0;
   virtual Position get_center() const = 0;
   virtual void draw(sf::RenderWindow *window, double window_size) const {}
+
+  bool has_boundary() { return m_has_boundary; }
 };
 
 class Square : public Map {
@@ -22,7 +27,10 @@ private:
   double m_side_length;
 
 public:
-  Square(double side_length) : m_side_length(side_length) {}
+  Square(double side_length, bool has_boundary = true)
+      : m_side_length(side_length) {
+    m_has_boundary = has_boundary;
+  }
 
   virtual bool is_in(Position pos) const override {
     if (pos.x < 0 or pos.x > m_side_length or pos.y < 0 or
@@ -63,7 +71,6 @@ public:
   virtual double distance(Position pos1, Position pos2) const override {
     return norm(pos1 - pos2);
   }
-
 };
 
 class Circle : public Map {
@@ -71,7 +78,9 @@ private:
   double m_diameter;
 
 public:
-  Circle(double diameter) : m_diameter(diameter) {}
+  Circle(double diameter, bool has_boundary = true) : m_diameter(diameter) {
+    m_has_boundary = has_boundary;
+  }
 
   virtual bool is_in(Position pos) const override {
     if (distance(pos, get_center()) > (m_diameter / 2)) {
@@ -103,7 +112,8 @@ public:
     return norm(pos1 - pos2);
   }
 
-  virtual void draw(sf::RenderWindow *window, double window_size) const override{
+  virtual void draw(sf::RenderWindow *window,
+                    double window_size) const override {
     sf::CircleShape outside(window_size * m_diameter / 2);
     outside.setPosition(window_size * get_center().x,
                         window_size * get_center().y);

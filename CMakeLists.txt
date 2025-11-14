@@ -5,6 +5,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # if(CMAKE_EXPORT_COMPILE_COMMANDS)
 #     set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
 # endif()
+add_compile_options(-Wall -pedantic)
 
 find_package(SFML 2.5 COMPONENTS graphics window system REQUIRED)
 add_executable(test test.cc)

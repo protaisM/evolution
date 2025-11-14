@@ -28,7 +28,7 @@ int main() {
   //                   [&my_map](Position pos) { return my_map.is_in(pos); });
   // other_one.print();
 
-  Square my_map(1);
+  Square my_map(1, false);
   Experiment<SimpleMouse, Predator::Bounce, Square, 1000> my_experiment("numerous", &my_map);
   // my_experiment.resume("cat_mice1");
   my_experiment.run_and_display(0.01);

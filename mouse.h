@@ -64,7 +64,7 @@ protected:
     return m_position + dt * m_velocity * direction;
   }
 
-  void update_position(double dt) {
+  bool update_position(double dt) {
     // given the new angle and the new velocity, update the position
     if (!m_is_alive) {
       std::cerr << "This bird is not alive" << std::endl;
@@ -72,9 +72,13 @@ protected:
     Position next_pos(get_next_position(dt));
     if (m_map->is_in(next_pos)) {
       m_position = next_pos;
-    } else {
+    } else if (m_map->has_boundary()) {
       m_position = m_map->project_on_map(next_pos);
+    } else {
+      kill();
+      return false;
     }
+    return true;
   }
 
   virtual void update_angle_and_velocity(Position predator_position,
@@ -86,9 +90,9 @@ protected:
   }
 
 public:
-  void advance(double dt, Position predator_position) {
+  bool advance(double dt, Position predator_position) {
     update_angle_and_velocity(predator_position, dt);
-    update_position(dt);
+    return update_position(dt);
   }
 
   void mutate(double mutation_strength) {

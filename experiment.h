@@ -1,7 +1,6 @@
 #pragma once
 
 #include "brain.h"
-#include "position.h"
 
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Font.hpp>
@@ -93,7 +92,9 @@ private:
       if (!m_mice[i].is_alive()) {
         continue;
       }
-      m_mice[i].advance(dt, m_predator.get_position());
+      if (!m_mice[i].advance(dt, m_predator.get_position())) {
+        m_nb_alive_mice--;
+      }
       if (m_predator.is_in_death_zone(m_mice[i].get_position())) {
         m_mice[i].kill();
         m_nb_alive_mice--;
@@ -210,10 +211,10 @@ private:
     case FULL:
       for (size_t i = 0; i < MICE_NUMBER; i++) {
         if (m_mice[i].is_alive()) {
-          m_mice[i].draw(window, m_zoom*m_window_size);
+          m_mice[i].draw(window, m_zoom * m_window_size);
         }
       }
-      m_predator.draw(window, m_zoom*m_window_size);
+      m_predator.draw(window, m_zoom * m_window_size);
       m_map->draw(window, m_window_size);
       // m_safe_zone.draw(window);
       draw_legend(window, space_right, space_bottom, dt);
@@ -222,11 +223,11 @@ private:
     case ONLY_MAP:
       for (size_t i = 0; i < MICE_NUMBER; i++) {
         if (m_mice[i].is_alive()) {
-          m_mice[i].draw(window, m_zoom*m_window_size);
+          m_mice[i].draw(window, m_zoom * m_window_size);
         }
       }
       m_map->draw(window, m_window_size);
-      m_predator.draw(window, m_zoom*m_window_size);
+      m_predator.draw(window, m_zoom * m_window_size);
       // m_safe_zone.draw(window);
       window->display();
       break;
