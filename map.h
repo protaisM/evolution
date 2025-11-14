@@ -42,7 +42,11 @@ public:
   }
 
   virtual Position project_on_map(Position pos) const override {
-    return pos.mod(m_side_length);
+      if(pos.x>m_side_length){pos.x=m_side_length;}
+      if(pos.y>m_side_length){pos.y=m_side_length;}
+      if(pos.x<0){pos.x=0;}
+      if(pos.y<0){pos.y=0;}
+    return pos; //.mod(m_side_length);
   };
 
   virtual double distance(Position pos1, Position pos2) const override {

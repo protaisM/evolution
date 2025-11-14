@@ -177,7 +177,6 @@ private:
       }
       count_alive_mice++;
     }
-    m_mice = new_mice;
     m_nb_alive_mice = index_new_mouse + 1;
     // if reproduction rate was not the evolutive pressure,
     // m_mices is not full: we populate the space between
@@ -186,9 +185,13 @@ private:
     for (unsigned int index_new_mouse = m_nb_alive_mice;
          index_new_mouse < MICE_NUMBER; index_new_mouse++) {
       mouse_to_copy = rnd_int_smaller_than(m_nb_alive_mice);
-      m_mice[index_new_mouse] = m_mice[mouse_to_copy];
-      m_mice[mouse_to_copy].mutate(m_mutation_strength);
+      new_mice[index_new_mouse] = new_mice[mouse_to_copy];
+      new_mice[index_new_mouse].mutate(m_mutation_strength);
+      new_mice[index_new_mouse].randomize_position(
+          [this]() { return m_map.rnd_position(); });
     }
+    m_mice = new_mice;
+    m_nb_alive_mice = MICE_NUMBER;
   }
 
   void run_on_window(sf::RenderWindow *window, double dt) {
@@ -200,10 +203,10 @@ private:
     while (window->isOpen()) {
       sf::Event evnt;
       while (window->pollEvent(evnt)) {
-        handle_event(window, evnt, screen);
+        handle_event(window, evnt, display);
       }
       do_one_step(dt);
-      draw(window, screen, space_right, space_bottom, dt);
+      draw(window, display, space_right, space_bottom, dt);
     }
   }
   void handle_event(sf::RenderWindow *window, sf::Event evnt, Screen &display) {
@@ -298,9 +301,6 @@ private:
     text_panel +=
         "Mice sight radius: " + std::to_string(m_mice[0].get_sight_radius()) +
         "\n";
-    text_panel +=
-        "Mice velocity: " + std::to_string(m_mice[0].get_velocity()) + "\n";
-    text_panel += "dt = " + std::to_string(dt) + "\n";
     // text_panel +=
     //     "Size of the safe zone : " + std::to_string(m_safe_zone.radius) +
     //     "\n";
@@ -309,6 +309,7 @@ private:
     text_panel +=
         "Speed of the predator: " + std::to_string(m_predator.m_velocity) +
         "\n";
+    text_panel += "dt = " + std::to_string(dt) + "\n";
     text_panel += "\n";
 
     panel.setString(text_panel);

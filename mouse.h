@@ -32,7 +32,6 @@ protected:
 
   // normalised to 1
   double m_sight_radius;
-  double m_max_angle = 2 * M_PI;
   bool m_is_alive;
   Color m_color;
 
@@ -166,13 +165,14 @@ protected:
     double dist = norm(m_position - predator_position);
     std::array<double, 2> output_from_brain;
     if (dist <= m_sight_radius) {
-      output_from_brain = m_brain.activate(
-          {dist, std::atan2(dist_y, dist_x), m_position.x, m_position.y});
+      output_from_brain =
+          m_brain.activate({dist, angle(m_position, predator_position),
+                            m_position.x, m_position.y});
     } else {
       output_from_brain = m_brain.activate({-1, 0, m_position.x, m_position.y});
     }
     m_velocity = std::abs(output_from_brain[0]);
-    m_angle += dt * m_max_angle * output_from_brain[1];
+    m_angle += dt * 2 * M_PI * output_from_brain[1];
     m_angle = std::fmod(m_angle, 2 * M_PI);
   }
 };
