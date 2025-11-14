@@ -29,7 +29,7 @@ int main() {
   //                   [&my_map](Position pos) { return my_map.is_in(pos); });
   // other_one.print();
 
-  Experiment<SimpleMouse, Cat, Square, 1000> my_experiment("numerous", my_map);
+  Experiment<SimpleMouse, Cat, Square, 1000> my_experiment("numerous", &my_map);
   // my_experiment.resume("cat_mice1");
   my_experiment.run_and_display(0.01);
 

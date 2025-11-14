@@ -45,7 +45,7 @@ private:
   unsigned int m_generation;
 
   // constant parameters
-  Map m_map;
+  Map *m_map;
   char m_title[40];
   unsigned int m_evolutive_pressure;
   double m_mutation_strength;
@@ -53,20 +53,19 @@ private:
   double m_window_size;
 
 public:
-  Experiment(const char title[40], Map map, double predator_radius = 0.1,
+  Experiment(const char title[40], Map *map, double predator_radius = 0.1,
              double mouse_radius = 0.3, unsigned int evolutive_pressure = 4,
              double mutation_strength = 0.1, int duration_generation = 100)
       : m_evolutive_pressure(evolutive_pressure),
         m_mutation_strength(mutation_strength),
         m_duration_generation(duration_generation),
-        m_nb_alive_mice(MICE_NUMBER), m_map(map), m_time(0.0),
-        m_generation(0), m_window_size(960) {
+        m_nb_alive_mice(MICE_NUMBER), m_map(map), m_time(0.0), m_generation(0),
+        m_window_size(960) {
     strcpy(m_title, title);
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
-      m_mice[i] = Mouse([&map]() { return map.rnd_position(); }, mouse_radius);
+      m_mice[i] = Mouse(m_map, mouse_radius);
     }
-    m_predator =
-        Predator([&map]() { return map.rnd_position(); }, predator_radius);
+    m_predator = Predator(m_map, predator_radius);
   }
 
   void run_on_background(double dt) {
@@ -88,17 +87,12 @@ public:
 private:
   void do_one_step(double dt) {
     m_time = m_time + dt;
-    m_predator.advance(
-        dt, [this](Position pos) { return m_map.is_in(pos); },
-        [this](Position pos) { return m_map.project_on_map(pos); });
+    m_predator.advance(dt);
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
       if (!m_mice[i].is_alive()) {
         continue;
       }
-      m_mice[i].advance(
-          dt, m_predator.get_position(),
-          [this](Position pos) { return m_map.is_in(pos); },
-          [this](Position pos) { return m_map.project_on_map(pos); });
+      m_mice[i].advance(dt, m_predator.get_position());
       if (m_predator.is_in_death_zone(m_mice[i].get_position())) {
         m_mice[i].kill();
         m_nb_alive_mice--;
@@ -108,7 +102,7 @@ private:
     if (condition_end_of_generation()) {
       reproduction_round();
       //   move_safe_zone();
-      m_predator.randomize_position([this]() { return m_map.rnd_position(); });
+      m_predator.randomize_position();
       m_generation++;
       m_time -= m_time;
     }
@@ -147,8 +141,7 @@ private:
         }
         new_mice[index_new_mouse] = m_mice[index_mouse_to_reproduce];
         new_mice[index_new_mouse].mutate(m_mutation_strength);
-        new_mice[index_new_mouse].randomize_position(
-            [this]() { return m_map.rnd_position(); });
+        new_mice[index_new_mouse].randomize_position();
       }
       count_alive_mice++;
     }
@@ -162,8 +155,7 @@ private:
       mouse_to_copy = rnd_int_smaller_than(m_nb_alive_mice);
       new_mice[index_new_mouse] = new_mice[mouse_to_copy];
       new_mice[index_new_mouse].mutate(m_mutation_strength);
-      new_mice[index_new_mouse].randomize_position(
-          [this]() { return m_map.rnd_position(); });
+      new_mice[index_new_mouse].randomize_position();
     }
     m_mice = new_mice;
     m_nb_alive_mice = MICE_NUMBER;

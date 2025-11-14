@@ -9,19 +9,19 @@
 
 struct Cat {
   Position m_position;
+  Map *m_map;
   double m_radius;
   double m_velocity = 0.1;
   double m_angle = 0.0;
 
-  Cat(std::function<Position()> rnd_pos_generator, double radius)
-      : m_radius(radius), m_position(rnd_pos_generator()) {}
+  Cat(Map *map, double radius)
+      : m_map(map), m_radius(radius), m_position(map->rnd_position()) {}
 
   Cat() {}
 
   Position get_position() { return m_position; }
 
-  void advance(double dt, std::function<bool(Position)> is_in_map,
-               std::function<Position(Position)> project_on_map) {
+  void advance(double dt) {
     // run in circle
     m_angle = M_PI / 2 + atan2((m_position.y - 0.5), (m_position.x - 0.5));
     // if (m_position.x > 0.5 and m_position.y > 0.5) {
@@ -39,10 +39,10 @@ struct Cat {
     Position pos({m_position.x, m_position.y});
     pos.x += dt * std::cos(m_angle) * m_velocity;
     pos.y += dt * std::sin(m_angle) * m_velocity;
-    if (is_in_map(pos)) {
+    if (m_map->is_in(pos)) {
       m_position = pos;
     } else {
-      m_position = project_on_map(pos);
+      m_position = m_map->project_on_map(pos);
     }
   }
   bool is_in_death_zone(Position pos) {
@@ -54,9 +54,7 @@ struct Cat {
     return false;
   }
 
-  void randomize_position(std::function<Position()> rnd_pos_generator) {
-    m_position = rnd_pos_generator();
-  }
+  void randomize_position() { m_position = m_map->rnd_position(); }
 
   void draw(sf::RenderWindow *window, double window_size) const {
     sf::CircleShape death(m_radius * window_size);
