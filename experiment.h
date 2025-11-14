@@ -98,13 +98,17 @@ public:
 private:
   void do_one_step(double dt) {
     m_time = m_time + dt;
-    m_predator.advance(dt, [this](Position pos) { return m_map.is_in(pos); });
+    m_predator.advance(
+        dt, [this](Position pos) { return m_map.is_in(pos); },
+        [this](Position pos) { return m_map.project_on_map(pos); });
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
       if (!m_mice[i].is_alive()) {
         continue;
       }
-      m_mice[i].advance(dt, m_predator.get_position(),
-                        [this](Position pos) { return m_map.is_in(pos); });
+      m_mice[i].advance(
+          dt, m_predator.get_position(),
+          [this](Position pos) { return m_map.is_in(pos); },
+          [this](Position pos) { return m_map.project_on_map(pos); });
       if (m_predator.is_in_death_zone(m_mice[i].get_position())) {
         m_mice[i].kill();
         m_nb_alive_mice--;
@@ -250,8 +254,8 @@ private:
     }
   }
 
-  void draw_legend(sf::RenderWindow *window, int space_right,
-                   int space_bottom, double dt) const {
+  void draw_legend(sf::RenderWindow *window, int space_right, int space_bottom,
+                   double dt) const {
     sf::Font font;
     font.loadFromFile("UbuntuMono-R.ttf");
 

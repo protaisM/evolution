@@ -20,9 +20,10 @@ struct Cat {
 
   Position get_position() { return m_position; }
 
-  void advance(double dt, std::function<bool(Position)> is_in_map) {
+  void advance(double dt, std::function<bool(Position)> is_in_map,
+               std::function<Position(Position)> project_on_map) {
     // run in circle
-    m_angle = M_PI / 2 + atan2((m_position.y - 0.5) , (m_position.x - 0.5));
+    m_angle = M_PI / 2 + atan2((m_position.y - 0.5), (m_position.x - 0.5));
     // if (m_position.x > 0.5 and m_position.y > 0.5) {
     //   m_angle = M_PI / 2;
     // }
@@ -40,6 +41,8 @@ struct Cat {
     pos.y += dt * std::sin(m_angle) * m_velocity;
     if (is_in_map(pos)) {
       m_position = pos;
+    } else {
+      m_position = project_on_map(pos);
     }
   }
   bool is_in_death_zone(Position pos) {

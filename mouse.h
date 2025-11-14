@@ -66,15 +66,17 @@ protected:
     return pos;
   }
 
-  void update_position(double dt, std::function<bool(Position)> is_in_map) {
+  void update_position(double dt, std::function<bool(Position)> is_in_map,
+                       std::function<Position(Position)> project_on_map) {
     // given the new angle and the new velocity, update the position
     if (!m_is_alive) {
       std::cerr << "This bird is not alive" << std::endl;
     }
     Position next_pos(get_next_position(dt));
     if (is_in_map(next_pos)) {
-      m_position.x = next_pos.x;
-      m_position.y = next_pos.y;
+      m_position = next_pos;
+    } else {
+      m_position = project_on_map(next_pos);
     }
   }
 
@@ -88,9 +90,10 @@ protected:
 
 public:
   void advance(double dt, Position predator_position,
-               std::function<bool(Position)> is_in_map) {
+               std::function<bool(Position)> is_in_map,
+               std::function<Position(Position)> project_on_map) {
     update_angle_and_velocity(predator_position, dt);
-    update_position(dt, is_in_map);
+    update_position(dt, is_in_map, project_on_map);
   }
 
   void mutate(double mutation_strength) {
