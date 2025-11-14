@@ -15,6 +15,8 @@
 #include <iostream>
 #include <string>
 
+enum Screen { FULL, ONLY_MAP, ONLY_LEGEND, EMPTY };
+
 // struct Safe_zone {
 //   double x;
 //   double y;
@@ -171,7 +173,8 @@ private:
   }
 
   void run_on_window(sf::RenderWindow *window, double dt) {
-    int screen = 1;
+    // we start with full screen
+    Screen display = FULL;
     double space_right = sf::VideoMode::getDesktopMode().width - m_window_size;
     double space_bottom =
         sf::VideoMode::getDesktopMode().height - m_window_size;
@@ -184,28 +187,24 @@ private:
       draw(window, screen, space_right, space_bottom);
     }
   }
-  void handle_event(sf::RenderWindow *window, sf::Event evnt, int &screen) {
+  void handle_event(sf::RenderWindow *window, sf::Event evnt, Screen &display) {
     switch (evnt.type) {
     case sf::Event::Closed: // close the window
       window->close();
       break;
     case (sf::Event::KeyReleased):
-      if (evnt.key.code == sf::Keyboard::Num1) // display screen 1
-      {
-        screen = 1;
+      if (evnt.key.code == sf::Keyboard::Num1) {
+        display = FULL;
       }
-      if (evnt.key.code == sf::Keyboard::Num2) // display screen 2 (no legend)
-      {
-        screen = 2;
+      if (evnt.key.code == sf::Keyboard::Num2) {
+        display = ONLY_MAP;
       }
-      if (evnt.key.code == sf::Keyboard::Num3) // display screen 3 (only legend)
-      {
-        screen = 3;
+      if (evnt.key.code == sf::Keyboard::Num3) {
+        display = ONLY_LEGEND;
         window->clear();
       }
-      if (evnt.key.code == sf::Keyboard::Num4) // display screen 4 (nothing)
-      {
-        screen = 4;
+      if (evnt.key.code == sf::Keyboard::Num4) {
+        display = EMPTY;
         window->clear();
       }
       break;
@@ -214,11 +213,11 @@ private:
     }
   }
 
-  void draw(sf::RenderWindow *window, int screen, int space_right,
+  void draw(sf::RenderWindow *window, Screen display, int space_right,
             int space_bottom) const {
     window->clear();
-    switch (screen) {
-    case 1:
+    switch (display) {
+    case FULL:
       for (size_t i = 0; i < MICE_NUMBER; i++) {
         if (m_mice[i].is_alive()) {
           m_mice[i].draw(window, m_window_size);
@@ -229,7 +228,7 @@ private:
       draw_legend(window, space_right, space_bottom);
       window->display();
       break;
-    case 2:
+    case ONLY_MAP:
       for (size_t i = 0; i < MICE_NUMBER; i++) {
         if (m_mice[i].is_alive()) {
           m_mice[i].draw(window, m_window_size);
@@ -239,10 +238,12 @@ private:
       // m_safe_zone.draw(window);
       window->display();
       break;
-    case 3:
+    case ONLY_LEGEND:
       draw_legend(window, space_right, space_bottom);
       window->display();
       break;
+    case EMPTY:
+      window->clear();
     default:
       break;
     }
