@@ -1,7 +1,7 @@
 #pragma once
 
 #include "brain.h"
-#include "map.h"
+#include "position.h"
 
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
@@ -60,10 +60,8 @@ public:
 
 protected:
   Position get_next_position(double dt) {
-    Position pos({m_position.x, m_position.y});
-    pos.x += dt * std::cos(m_angle) * m_velocity;
-    pos.y += dt * std::sin(m_angle) * m_velocity;
-    return pos;
+    Position direction({std::cos(m_angle), std::sin(m_angle)});
+    return m_position + dt * m_velocity * direction;
   }
 
   void update_position(double dt, std::function<bool(Position)> is_in_map,
@@ -165,9 +163,7 @@ public:
 protected:
   virtual void update_angle_and_velocity(Position predator_position,
                                          double dt) override {
-    double dist_x = predator_position.x - m_position.x;
-    double dist_y = predator_position.y - m_position.y;
-    double dist = std::sqrt((dist_x) * (dist_x) + (dist_y) * (dist_y));
+    double dist = norm(m_position - predator_position);
     std::array<double, 2> output_from_brain;
     if (dist <= m_sight_radius) {
       output_from_brain = m_brain.activate(
@@ -177,10 +173,7 @@ protected:
     }
     m_velocity = std::abs(output_from_brain[0]);
     m_angle += dt * m_max_angle * output_from_brain[1];
-    if (m_angle < 0)
-      m_angle += 2 * M_PI;
-    if (m_angle > 2 * M_PI)
-      m_angle -= 2 * M_PI;
+    m_angle = std::fmod(m_angle, 2 * M_PI);
   }
 };
 
