@@ -1,5 +1,6 @@
 #pragma once
 
+#include "brain.h"
 #include "map.h"
 
 #include <SFML/Graphics/CircleShape.hpp>
@@ -100,7 +101,7 @@ private:
         continue;
       }
       m_mice[i].advance(dt, m_predator.get_position(),
-                         [this](Position pos) { return m_map.is_in(pos); });
+                        [this](Position pos) { return m_map.is_in(pos); });
       if (m_predator.is_in_death_zone(m_mice[i].get_position())) {
         m_mice[i].kill();
         m_nb_alive_mice--;
@@ -129,33 +130,44 @@ private:
     }
     unsigned int reproduction_rate =
         std::min(MICE_NUMBER / m_nb_alive_mice, m_evolutive_pressure);
-    size_t index_alive_mouse = 0;
-    size_t index;
+    unsigned int count_alive_mice = 0;
+    unsigned int index_new_mouse = 0;
     std::array<Mouse, MICE_NUMBER> new_mice;
-    for (unsigned int reading_index = 0; reading_index < MICE_NUMBER;
-         reading_index++) {
-      if (!m_mice[reading_index].is_alive()) {
+    for (unsigned int index_mouse_to_reproduce = 0;
+         index_mouse_to_reproduce < MICE_NUMBER; index_mouse_to_reproduce++) {
+      if (!m_mice[index_mouse_to_reproduce].is_alive()) {
         continue;
       }
-      for (size_t i = 0; i < reproduction_rate; i++) {
-        index = index_alive_mouse * reproduction_rate + i;
-        if (index_alive_mouse >= m_nb_alive_mice) {
+      // each mouse can reproduce a certain number of time
+      for (unsigned int baby = 0; baby < reproduction_rate; baby++) {
+        index_new_mouse = count_alive_mice * reproduction_rate + baby;
+        if (count_alive_mice >= m_nb_alive_mice) {
           std::cerr << "Error in the count of alive mice" << std::endl;
           exit(0);
         }
-        if (index >= MICE_NUMBER) {
+        if (index_new_mouse >= MICE_NUMBER) {
           std::cerr << "Error in the reproduction" << std::endl;
           exit(0);
         }
-        new_mice[index] = m_mice[reading_index];
-        new_mice[index].mutate(m_mutation_strength);
-        new_mice[index].randomize_position(
+        new_mice[index_new_mouse] = m_mice[index_mouse_to_reproduce];
+        new_mice[index_new_mouse].mutate(m_mutation_strength);
+        new_mice[index_new_mouse].randomize_position(
             [this]() { return m_map.rnd_position(); });
       }
-      index_alive_mouse++;
+      count_alive_mice++;
     }
     m_mice = new_mice;
-    m_nb_alive_mice = index + 1;
+    m_nb_alive_mice = index_new_mouse + 1;
+    // if reproduction rate was not the evolutive pressure,
+    // m_mices is not full: we populate the space between
+    // nb_alive_mice and MICE_NUMBER
+    unsigned int mouse_to_copy;
+    for (unsigned int index_new_mouse = m_nb_alive_mice;
+         index_new_mouse < MICE_NUMBER; index_new_mouse++) {
+      mouse_to_copy = rnd_int_smaller_than(m_nb_alive_mice);
+      m_mice[index_new_mouse] = m_mice[mouse_to_copy];
+      m_mice[mouse_to_copy].mutate(m_mutation_strength);
+    }
   }
 
   void run_on_window(sf::RenderWindow *window, double dt) {
@@ -278,8 +290,7 @@ private:
     text_panel += "\n";
     text_panel += "Day : " + std::to_string(m_day) +
                   ", Time :  " + std::to_string(m_time) + "\n";
-    text_panel +=
-        "Remaining mice : " + std::to_string(m_nb_alive_mice) + "\n";
+    text_panel += "Remaining mice : " + std::to_string(m_nb_alive_mice) + "\n";
 
     panel.setString(text_panel);
     panel.setFillColor(sf::Color::White);
