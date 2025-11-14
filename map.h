@@ -14,6 +14,7 @@ public:
   virtual Position project_on_map(Position) const = 0;
   virtual double distance(Position, Position) const = 0;
   virtual Position get_center() const = 0;
+  virtual void draw(sf::RenderWindow *window, double window_size) const {}
 };
 
 class Square : public Map {
@@ -62,6 +63,7 @@ public:
   virtual double distance(Position pos1, Position pos2) const override {
     return norm(pos1 - pos2);
   }
+
 };
 
 class Circle : public Map {
@@ -101,7 +103,7 @@ public:
     return norm(pos1 - pos2);
   }
 
-  void draw(sf::RenderWindow *window, double window_size) const {
+  virtual void draw(sf::RenderWindow *window, double window_size) const override{
     sf::CircleShape outside(window_size * m_diameter / 2);
     outside.setPosition(window_size * get_center().x,
                         window_size * get_center().y);

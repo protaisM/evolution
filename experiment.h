@@ -56,7 +56,7 @@ private:
 public:
   Experiment(const char title[40], Map *map, double predator_radius = 0.1,
              double mouse_radius = 0.3, unsigned int evolutive_pressure = 4,
-             double mutation_strength = 0.1, int duration_generation = 100)
+             double mutation_strength = 0.1, int duration_generation = 200)
       : m_evolutive_pressure(evolutive_pressure),
         m_mutation_strength(mutation_strength),
         m_duration_generation(duration_generation),

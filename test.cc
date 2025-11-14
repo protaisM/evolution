@@ -28,8 +28,8 @@ int main() {
   //                   [&my_map](Position pos) { return my_map.is_in(pos); });
   // other_one.print();
 
-  Circle my_map(1);
-  Experiment<SimpleMouse, Cat, Circle, 1000> my_experiment("numerous", &my_map);
+  Square my_map(1);
+  Experiment<SimpleMouse, Predator::Bounce, Square, 1000> my_experiment("numerous", &my_map);
   // my_experiment.resume("cat_mice1");
   my_experiment.run_and_display(0.01);
 
