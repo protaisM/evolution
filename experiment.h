@@ -1,7 +1,7 @@
 #pragma once
 
 #include "brain.h"
-#include "map.h"
+#include "position.h"
 
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Font.hpp>
@@ -11,7 +11,6 @@
 #include <SFML/Window/Event.hpp>
 #include <array>
 #include <cstring>
-#include <fstream>
 #include <iostream>
 #include <string>
 
@@ -46,21 +45,22 @@ private:
   unsigned int m_generation;
 
   // constant parameters
-  const Map m_map;
+  Map m_map;
   char m_title[40];
-  const unsigned int m_evolutive_pressure;
-  const double m_mutation_strength;
-  const int m_duration_generation;
-  const double m_window_size = 960;
+  unsigned int m_evolutive_pressure;
+  double m_mutation_strength;
+  int m_duration_generation;
+  double m_window_size;
 
 public:
-  Experiment(char title[40], Map map, double predator_radius = 0.1,
+  Experiment(const char title[40], Map map, double predator_radius = 0.1,
              double mouse_radius = 0.3, unsigned int evolutive_pressure = 4,
              double mutation_strength = 0.1, int duration_generation = 100)
       : m_evolutive_pressure(evolutive_pressure),
         m_mutation_strength(mutation_strength),
         m_duration_generation(duration_generation),
-        m_nb_alive_mice(MICE_NUMBER), m_map(map), m_time(0.0), m_generation(0) {
+        m_nb_alive_mice(MICE_NUMBER), m_map(map), m_time(0.0),
+        m_generation(0), m_window_size(960) {
     strcpy(m_title, title);
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
       m_mice[i] = Mouse([&map]() { return map.rnd_position(); }, mouse_radius);
@@ -83,30 +83,6 @@ public:
                                           m_window_size + space_bottom),
                             std::string(m_title));
     run_on_window(&window, dt);
-  }
-
-  void resume(std::string title) {
-    std::fstream in(title, std::ios::in | std::ios::binary);
-    if (!in) {
-      std::cerr << "\a\n\nLog file not found\n\n";
-      return;
-    }
-    in.read(reinterpret_cast<char *>(this), sizeof(*this));
-    in.close();
-  }
-  //  Function for Deserialization
-  static Experiment<Mouse, Predator, Map, MICE_NUMBER>
-  deserialize(const std::string &filename, char title[40], Map map) {
-    Experiment<Mouse, Predator, Map, MICE_NUMBER> obj(title, map);
-    std::ifstream file(filename, std::ios::binary);
-    if (!file.is_open()) {
-      std::cerr << "Error: Failed to open file for reading." << std::endl;
-      return obj;
-    }
-    file.read(reinterpret_cast<char *>(&obj), sizeof(obj));
-    file.close();
-    std::cout << "Object deserialized successfully." << std::endl;
-    return obj;
   }
 
 private:
@@ -135,7 +111,6 @@ private:
       m_predator.randomize_position([this]() { return m_map.rnd_position(); });
       m_generation++;
       m_time -= m_time;
-      save_current_state();
     }
   }
 
@@ -342,16 +317,5 @@ private:
 
     window->draw(panel);
     window->draw(legend);
-  }
-
-  void save_current_state() {
-    std::ofstream file(m_title, std::ios::binary);
-    if (!file.is_open()) {
-      std::cerr << "Error: Failed to open file for writing." << std::endl;
-      return;
-    }
-    file.write(reinterpret_cast<const char *>(this), sizeof(*this));
-    file.close();
-    std::cout << "Object serialized successfully." << std::endl;
   }
 };
