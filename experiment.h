@@ -43,23 +43,23 @@ private:
   // Safe_zone m_safe_zone;
 
   double m_time;
-  unsigned int m_day;
+  unsigned int m_generation;
 
   // constant parameters
   const Map m_map;
   char m_title[40];
   const unsigned int m_evolutive_pressure;
   const double m_mutation_strength;
-  const int m_duration_day;
+  const int m_duration_generation;
   const double m_window_size = 960;
 
 public:
   Experiment(char title[40], Map map, double predator_radius = 0.1,
              double mouse_radius = 0.3, unsigned int evolutive_pressure = 4,
-             double mutation_strength = 0.1, int duration_day = 100)
+             double mutation_strength = 0.1, int duration_generation = 100)
       : m_evolutive_pressure(evolutive_pressure),
-        m_mutation_strength(mutation_strength), m_duration_day(duration_day),
-        m_nb_alive_mice(MICE_NUMBER), m_map(map), m_time(0.0), m_day(0) {
+        m_mutation_strength(mutation_strength), m_duration_generation(duration_generation),
+        m_nb_alive_mice(MICE_NUMBER), m_map(map), m_time(0.0), m_generation(0) {
     strcpy(m_title, title);
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
       m_mice[i] = Mouse([&map]() { return map.rnd_position(); }, mouse_radius);
@@ -110,22 +110,22 @@ private:
       }
     }
 
-    if (condition_end_of_day()) {
-      reproduce_alive();
+    if (condition_end_of_generation()) {
+      reproduction_round();
       //   move_safe_zone();
       m_predator.randomize_position([this]() { return m_map.rnd_position(); });
-      m_day++;
+      m_generation++;
       m_time -= m_time;
       save_current_state();
     }
   }
 
-  bool condition_end_of_day() {
+  bool condition_end_of_generation() {
     return (m_nb_alive_mice < MICE_NUMBER / m_evolutive_pressure + 1) ||
-           m_time >= m_duration_day;
+           m_time >= m_duration_generation;
   }
 
-  void reproduce_alive() {
+  void reproduction_round() {
     if (m_nb_alive_mice <= 0) {
       std::cerr << "No mice to reproduce" << std::endl;
       return;
@@ -260,7 +260,7 @@ private:
     std::string text_legend =
         " Mice alive : " + std::to_string(m_nb_alive_mice) + "\n";
     text_legend +=
-        " Day " + std::to_string(m_day) + " and time " + std::to_string(m_time);
+        " Generation " + std::to_string(m_generation) + " and time " + std::to_string(m_time);
     legend.setString(text_legend);
     legend.setFillColor(sf::Color::White);
     legend.setPosition(0.0f, m_window_size);
@@ -275,7 +275,7 @@ private:
                   std::to_string(m_window_size) + ")\n";
     text_panel += "Max number of mice : " + std::to_string(MICE_NUMBER) + "\n";
     text_panel +=
-        "Duration of the day : " + std::to_string(m_duration_day) + "\n";
+        "Duration of a generation: " + std::to_string(m_duration_generation) + "\n";
     text_panel +=
         "Evolutive pressure : " + std::to_string(m_evolutive_pressure) + "\n";
     text_panel +=
@@ -289,9 +289,6 @@ private:
         "Speed of the predator : " + std::to_string(m_predator.m_velocity) +
         "\n";
     text_panel += "\n";
-    text_panel += "Day : " + std::to_string(m_day) +
-                  ", Time :  " + std::to_string(m_time) + "\n";
-    text_panel += "Remaining mice : " + std::to_string(m_nb_alive_mice) + "\n";
 
     panel.setString(text_panel);
     panel.setFillColor(sf::Color::White);
