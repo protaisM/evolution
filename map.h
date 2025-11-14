@@ -1,6 +1,8 @@
 #pragma once
 
 // #include <SFML/Graphics.hpp>
+#include <SFML/Graphics/CircleShape.hpp>
+#include <SFML/Graphics/RenderWindow.hpp>
 #include <cmath>
 
 #include "position.h"
@@ -70,7 +72,7 @@ public:
   Circle(double diameter) : m_diameter(diameter) {}
 
   virtual bool is_in(Position pos) const override {
-    if (distance(pos, get_center()) > m_diameter / 2) {
+    if (distance(pos, get_center()) > (m_diameter / 2)) {
       return false;
     }
     return true;
@@ -97,5 +99,28 @@ public:
 
   virtual double distance(Position pos1, Position pos2) const override {
     return norm(pos1 - pos2);
+  }
+
+  void draw(sf::RenderWindow *window, double window_size) const {
+    sf::CircleShape outside(window_size * m_diameter / 2);
+    outside.setPosition(window_size * get_center().x,
+                        window_size * get_center().y);
+    outside.setOutlineColor(sf::Color::Black);
+    outside.setFillColor(sf::Color::Transparent);
+    outside.setOutlineThickness(1000.f);
+    outside.setPointCount(200);
+    outside.setOrigin(window_size * get_center().x,
+                      window_size * get_center().y);
+    window->draw(outside);
+    sf::CircleShape outline(window_size * m_diameter / 2);
+    outline.setPosition(window_size * get_center().x,
+                        window_size * get_center().y);
+    outline.setOutlineColor(sf::Color::White);
+    outline.setFillColor(sf::Color::Transparent);
+    outline.setOutlineThickness(1.f);
+    outline.setPointCount(200);
+    outline.setOrigin(window_size * get_center().x,
+                      window_size * get_center().y);
+    window->draw(outline);
   }
 };

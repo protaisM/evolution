@@ -51,6 +51,7 @@ private:
   double m_mutation_strength;
   int m_duration_generation;
   double m_window_size;
+  double m_zoom;
 
 public:
   Experiment(const char title[40], Map *map, double predator_radius = 0.1,
@@ -60,7 +61,7 @@ public:
         m_mutation_strength(mutation_strength),
         m_duration_generation(duration_generation),
         m_nb_alive_mice(MICE_NUMBER), m_map(map), m_time(0.0), m_generation(0),
-        m_window_size(960) {
+        m_window_size(960), m_zoom(1.) {
     strcpy(m_title, title);
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
       m_mice[i] = Mouse(m_map, mouse_radius);
@@ -209,10 +210,11 @@ private:
     case FULL:
       for (size_t i = 0; i < MICE_NUMBER; i++) {
         if (m_mice[i].is_alive()) {
-          m_mice[i].draw(window, m_window_size);
+          m_mice[i].draw(window, m_zoom*m_window_size);
         }
       }
-      m_predator.draw(window, m_window_size);
+      m_predator.draw(window, m_zoom*m_window_size);
+      m_map->draw(window, m_window_size);
       // m_safe_zone.draw(window);
       draw_legend(window, space_right, space_bottom, dt);
       window->display();
@@ -220,10 +222,11 @@ private:
     case ONLY_MAP:
       for (size_t i = 0; i < MICE_NUMBER; i++) {
         if (m_mice[i].is_alive()) {
-          m_mice[i].draw(window, m_window_size);
+          m_mice[i].draw(window, m_zoom*m_window_size);
         }
       }
-      m_predator.draw(window, m_window_size);
+      m_map->draw(window, m_window_size);
+      m_predator.draw(window, m_zoom*m_window_size);
       // m_safe_zone.draw(window);
       window->display();
       break;

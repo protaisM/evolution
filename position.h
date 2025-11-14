@@ -34,14 +34,14 @@ inline Position operator*(const Position &pos, double a) {
 }
 
 inline double norm(const Position &pos) {
-  return (pos.x * pos.x) + (pos.y * pos.y);
+  return std::sqrt((pos.x * pos.x) + (pos.y * pos.y));
 }
 
 inline double angle(const Position &pos1, const Position &pos2) {
   return std::atan2(pos1.y - pos2.y, pos1.x - pos2.x);
 }
 
-std::ostream &operator<<(std::ostream &in, const Position &pos) {
+inline std::ostream &operator<<(std::ostream &in, const Position &pos) {
   in << "(" << pos.x << "," << pos.y << ")";
   return in;
 }
