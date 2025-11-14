@@ -3,10 +3,7 @@
 // #include <SFML/Graphics.hpp>
 #include <cmath>
 
-struct Position {
-  double x;
-  double y;
-};
+#include "position.h"
 
 class Map {
 public:
