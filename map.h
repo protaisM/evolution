@@ -42,16 +42,11 @@ public:
   }
 
   virtual Position project_on_map(Position pos) const override {
-    Position projection;
-    projection.x = fmod(pos.x, 1.0);
-    projection.y = fmod(pos.y, 1.0);
-    return pos;
+    return pos.mod(m_side_length);
   };
 
   virtual double distance(Position pos1, Position pos2) const override {
-    double dist_x = pos1.x - pos2.x;
-    double dist_y = pos1.y - pos2.y;
-    return std::sqrt((dist_x) * (dist_x) + (dist_y) * (dist_y));
+    return norm(pos1 - pos2);
   }
 };
 
@@ -84,12 +79,11 @@ public:
   }
 
   virtual Position project_on_map(Position pos) const override {
-    // TODO: needs position maths
+    Position center = get_center();
+    return (pos - center) * (m_diameter / (2 * norm(pos - center))) + center;
   };
 
   virtual double distance(Position pos1, Position pos2) const override {
-    double dist_x = pos1.x - pos2.x;
-    double dist_y = pos1.y - pos2.y;
-    return std::sqrt((dist_x) * (dist_x) + (dist_y) * (dist_y));
+    return norm(pos1 - pos2);
   }
 };
