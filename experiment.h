@@ -51,6 +51,7 @@ private:
   int m_duration_generation;
   double m_window_size;
   double m_zoom;
+  double m_dt;
 
 public:
   Experiment(const char title[40], Map *map, double predator_radius = 0.1,
@@ -60,7 +61,7 @@ public:
         m_evolutive_pressure(evolutive_pressure),
         m_mutation_strength(mutation_strength),
         m_duration_generation(duration_generation), m_window_size(960),
-        m_zoom(1.) {
+        m_zoom(1.), m_dt(0.005) {
     strcpy(m_title, title);
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
       m_mice[i] = Mouse(m_map, mouse_radius);
@@ -68,31 +69,31 @@ public:
     m_predator = Predator(m_map, predator_radius);
   }
 
-  void run_on_background(double dt) {
+  void run_on_background() {
     while (true) {
-      do_one_step(dt);
+      do_one_step();
     }
   }
 
-  void run_and_display(double dt) {
+  void run_and_display() {
     double space_right = sf::VideoMode::getDesktopMode().width - m_window_size;
     double space_bottom =
         sf::VideoMode::getDesktopMode().height - m_window_size;
     sf::RenderWindow window(sf::VideoMode(m_window_size + space_right,
                                           m_window_size + space_bottom),
                             std::string(m_title));
-    run_on_window(&window, dt);
+    run_on_window(&window);
   }
 
 private:
-  void do_one_step(double dt) {
-    m_time = m_time + dt;
-    m_predator.advance(dt);
+  void do_one_step() {
+    m_time = m_time + m_dt;
+    m_predator.advance(m_dt);
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
       if (!m_mice[i].is_alive()) {
         continue;
       }
-      if (!m_mice[i].advance(dt, m_predator.get_position())) {
+      if (!m_mice[i].advance(m_dt, m_predator.get_position())) {
         m_nb_alive_mice--;
       }
       if (m_predator.is_in_death_zone(m_mice[i].get_position())) {
@@ -120,8 +121,7 @@ private:
       std::cerr << "No mice to reproduce" << std::endl;
       return;
     }
-    unsigned int reproduction_rate =
-        std::min(MICE_NUMBER / m_nb_alive_mice, m_evolutive_pressure);
+    unsigned int reproduction_rate = MICE_NUMBER / m_nb_alive_mice;
     unsigned int count_alive_mice = 0;
     unsigned int index_new_mouse = 0;
     std::array<Mouse, MICE_NUMBER> new_mice;
@@ -134,12 +134,26 @@ private:
       for (unsigned int baby = 0; baby < reproduction_rate; baby++) {
         index_new_mouse = count_alive_mice * reproduction_rate + baby;
         if (count_alive_mice >= m_nb_alive_mice) {
-          std::cerr << "Error in the count of alive mice" << std::endl;
-          exit(0);
+          // std::cerr << "Error in the count of alive mice" << std::endl;
+          // std::cout << "count_alive_mice = " << count_alive_mice
+          //           << " and m_nb_alive_mice = " << m_nb_alive_mice
+          //           << std::endl;
+          // std::cout << "index_new_mouse = " << index_new_mouse
+          //           << ", reproduction rate = " << reproduction_rate
+          //           << " and baby = " << baby << std::endl;
+          // std::cout << "m_mice is:" << std::endl;
+          // for (unsigned int i = 0; i < MICE_NUMBER; i++) {
+          //   m_mice[i].print();
+          // }
+          // std::cout << "And new mice is:" << std::endl;
+          // for (unsigned int i = 0; i < MICE_NUMBER; i++) {
+          //   new_mice[i].print();
+          // }
+          break;
         }
         if (index_new_mouse >= MICE_NUMBER) {
           std::cerr << "Error in the reproduction" << std::endl;
-          exit(0);
+          break;
         }
         new_mice[index_new_mouse] = m_mice[index_mouse_to_reproduce];
         new_mice[index_new_mouse].mutate(m_mutation_strength);
@@ -163,7 +177,7 @@ private:
     m_nb_alive_mice = MICE_NUMBER;
   }
 
-  void run_on_window(sf::RenderWindow *window, double dt) {
+  void run_on_window(sf::RenderWindow *window) {
     // we start with full screen
     Screen display = FULL;
     double space_right = sf::VideoMode::getDesktopMode().width - m_window_size;
@@ -174,8 +188,8 @@ private:
       while (window->pollEvent(evnt)) {
         handle_event(window, evnt, display);
       }
-      do_one_step(dt);
-      draw(window, display, space_right, space_bottom, dt);
+      do_one_step();
+      draw(window, display, space_right, space_bottom, m_dt);
     }
   }
   void handle_event(sf::RenderWindow *window, sf::Event evnt, Screen &display) {
@@ -197,6 +211,15 @@ private:
       if (evnt.key.code == sf::Keyboard::Num4) {
         display = EMPTY;
         window->clear();
+      }
+      if (evnt.key.code == sf::Keyboard::J) {
+        m_dt -= 0.005;
+        if (m_dt < 0) {
+          m_dt = 0;
+        }
+      }
+      if (evnt.key.code == sf::Keyboard::K) {
+        m_dt += 0.005;
       }
       break;
     default:
@@ -226,8 +249,8 @@ private:
           m_mice[i].draw(window, m_zoom * m_window_size);
         }
       }
-      m_map->draw(window, m_window_size);
       m_predator.draw(window, m_zoom * m_window_size);
+      m_map->draw(window, m_window_size);
       // m_safe_zone.draw(window);
       window->display();
       break;
@@ -298,10 +321,8 @@ private:
     boundary_down.setPosition(0.0f, m_window_size);
     boundary_down.setFillColor(sf::Color::Black);
 
-    // the lines around the map
     window->draw(boundary_right);
     window->draw(boundary_down);
-
     window->draw(panel);
     window->draw(legend);
   }

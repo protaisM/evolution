@@ -154,6 +154,9 @@ public:
     std::cout << "A simple mouse at position (" << m_position.x << ","
               << m_position.y << "), with velocity " << m_velocity
               << " and direction " << m_angle << std::endl;
+    if (m_is_alive) {
+      std::cout << "It is alive!!" << std::endl;
+    }
     std::cout << "Its brain is:" << std::endl;
     m_brain.print();
   }
