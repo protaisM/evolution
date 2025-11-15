@@ -143,15 +143,72 @@ public:
     outside.setOrigin(window_size * get_center().x,
                       window_size * get_center().y);
     window->draw(outside);
-    sf::CircleShape outline(window_size * m_diameter / 2);
-    outline.setPosition(window_size * get_center().x,
-                        window_size * get_center().y);
-    outline.setOutlineColor(sf::Color::White);
-    outline.setFillColor(sf::Color::Transparent);
-    outline.setOutlineThickness(2.f);
-    outline.setPointCount(200);
-    outline.setOrigin(window_size * get_center().x,
-                      window_size * get_center().y);
-    window->draw(outline);
+    // sf::CircleShape outline(window_size * m_diameter / 2);
+    // outline.setPosition(window_size * get_center().x,
+    //                     window_size * get_center().y);
+    // outline.setOutlineColor(sf::Color::White);
+    // outline.setFillColor(sf::Color::Transparent);
+    // outline.setOutlineThickness(2.f);
+    // outline.setPointCount(200);
+    // outline.setOrigin(window_size * get_center().x,
+    //                   window_size * get_center().y);
+    // window->draw(outline);
   }
+};
+
+class Torus : public Map {
+private:
+  double m_side_length;
+
+public:
+  Torus(double side_length) : m_side_length(side_length) {
+    m_has_boundary = true;
+  }
+
+  virtual bool is_in(Position pos) const override {
+    if (pos.x < 0 or pos.x > m_side_length or pos.y < 0 or
+        pos.y > m_side_length) {
+      return false;
+    }
+    return true;
+  }
+
+  virtual Position get_center() const override {
+    Position center({m_side_length / 2, m_side_length / 2});
+    return center;
+  }
+
+  virtual Position rnd_position() const override {
+    Position result;
+    result.x = ((double)rand() / ((double)RAND_MAX)) * m_side_length;
+    result.y = ((double)rand() / ((double)RAND_MAX)) * m_side_length;
+    return result;
+  }
+
+  virtual Position project_on_map(Position pos) const override {
+    Position offset({1, 1});
+    return (pos + offset).mod(m_side_length);
+  };
+
+  virtual double distance(Position pos1, Position pos2) const override {
+    return norm(pos1 - pos2);
+  }
+
+  virtual void draw(sf::RenderWindow *window,
+                    double window_size) const override {
+    sf::Vertex line_bottom[] = {
+        sf::Vertex(sf::Vector2f(0.0f, window_size)),
+        sf::Vertex(sf::Vector2f(window_size, window_size))};
+    sf::Vertex line_right[] = {
+        sf::Vertex(sf::Vector2f(window_size, 0.0f)),
+        sf::Vertex(sf::Vector2f(window_size, window_size))};
+    sf::Vertex line_top[] = {sf::Vertex(sf::Vector2f(1.0f, 1.0f)),
+                             sf::Vertex(sf::Vector2f(1.0f, window_size))};
+    sf::Vertex line_left[] = {sf::Vertex(sf::Vector2f(1.0f, 1.0f)),
+                              sf::Vertex(sf::Vector2f(window_size, 1.0f))};
+    window->draw(line_bottom, 2, sf::Lines);
+    window->draw(line_right, 2, sf::Lines);
+    window->draw(line_top, 2, sf::Lines);
+    window->draw(line_left, 2, sf::Lines);
+  };
 };
