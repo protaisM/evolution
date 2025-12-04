@@ -19,6 +19,7 @@ public:
   virtual double distance(Position, Position) const = 0;
   virtual Position get_center() const = 0;
   virtual void draw(sf::RenderWindow *window, double window_size) const = 0;
+  virtual double get_radius() const = 0;
 
   bool has_boundary() { return m_has_boundary; }
 };
@@ -45,6 +46,8 @@ public:
     Position center({m_side_length / 2, m_side_length / 2});
     return center;
   }
+
+  virtual double get_radius() const override { return m_side_length / 2; }
 
   virtual Position rnd_position() const override {
     Position result;
@@ -113,6 +116,8 @@ public:
     return center;
   }
 
+  virtual double get_radius() const override { return m_diameter / 2; }
+
   virtual Position rnd_position() const override {
     Position result;
     do {
@@ -177,6 +182,8 @@ public:
     Position center({m_side_length / 2, m_side_length / 2});
     return center;
   }
+
+  virtual double get_radius() const override { return m_side_length / 2; }
 
   virtual Position rnd_position() const override {
     Position result;
