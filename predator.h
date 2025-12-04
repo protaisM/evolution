@@ -11,31 +11,48 @@ inline double rand_angle() {
   return 2 * M_PI * ((double)rand() / (double)RAND_MAX);
 }
 
-struct Run_in_circle {
-  Position m_position;
+class BasePredator {
+protected:
+  bool m_randomize_position;
   Map *m_map;
-  double m_radius;
-  double m_velocity = 0.2;
-  double m_angle = 0.0;
+  double m_velocity;
 
-  Run_in_circle(Map *map, double radius)
-      : m_position(map->rnd_position()), m_map(map), m_radius(radius) {}
+  double m_angle;
+  Position m_position;
 
-  Run_in_circle() {}
+public:
+  BasePredator(Map *map, double velocity, bool random_pos)
+      : m_randomize_position(random_pos), m_map(map), m_velocity(velocity),
+        m_position(map->rnd_position()) {}
+
+  BasePredator() {}
+
+  void clear_position() {
+    if (m_randomize_position)
+      m_position = m_map->rnd_position();
+  }
 
   Position get_position() { return m_position; }
 
-  void advance(double dt) {
-    m_angle = M_PI / 2 + atan2((m_position.y - 0.5), (m_position.x - 0.5));
-    Position direction({std::cos(m_angle), std::sin(m_angle)});
-    Position pos = m_position + dt * m_velocity * direction;
-    if (m_map->is_in(pos)) {
-      m_position = pos;
-    } else {
-      m_position = m_map->project_on_map(pos);
-    }
+public:
+  virtual bool is_in_death_zone(Position pos) = 0;
+  virtual void advance(double dt) = 0;
+  virtual void draw(sf::RenderWindow *window, double window_size) const = 0;
+};
+
+class CircleShaped : public BasePredator {
+protected:
+  double m_radius;
+
+public:
+  CircleShaped(Map *map, double radius, double velocity, bool random_pos)
+      : BasePredator(map, velocity, random_pos) {
+    m_radius = radius;
   }
-  bool is_in_death_zone(Position pos) {
+
+  CircleShaped() : BasePredator() {}
+
+  bool is_in_death_zone(Position pos) override {
     if ((m_position.x - pos.x) * (m_position.x - pos.x) +
             (m_position.y - pos.y) * (m_position.y - pos.y) <
         m_radius * m_radius) {
@@ -44,9 +61,7 @@ struct Run_in_circle {
     return false;
   }
 
-  void randomize_position() { m_position = m_map->rnd_position(); }
-
-  void draw(sf::RenderWindow *window, double window_size) const {
+  void draw(sf::RenderWindow *window, double window_size) const override {
     sf::CircleShape death(m_radius * window_size);
     death.setPosition(m_position.x * window_size, m_position.y * window_size);
     death.setFillColor(sf::Color::Red);
@@ -55,22 +70,45 @@ struct Run_in_circle {
   }
 };
 
-struct Bounce {
-  Position m_position;
-  Map *m_map;
-  double m_radius;
-  double m_velocity = 0.2;
-  double m_angle;
+class CircleShaped_RunInCircle : public CircleShaped {
+public:
+  CircleShaped_RunInCircle(Map *map, double radius, double velocity = 0.4,
+                           bool random_pos = true)
+      : CircleShaped(map, radius, velocity, random_pos) {
+    m_radius = radius;
+  }
 
-  Bounce(Map *map, double radius)
-      : m_position(map->rnd_position()), m_map(map), m_radius(radius),
-        m_angle(rand_angle()) {}
+  CircleShaped_RunInCircle() : CircleShaped() {}
 
-  Bounce() {}
+  void advance(double dt) override {
+    m_angle = M_PI / 2 + atan2((m_position.y - 0.5), (m_position.x - 0.5));
+    if (m_map->distance(m_position, m_map->get_center()) >=
+        m_map->get_radius() - m_radius) {
+      m_angle += dt * rand_angle();
+    } else {
+      m_angle += dt * (rand_angle() - M_PI);
+    }
+    Position direction({std::cos(m_angle), std::sin(m_angle)});
+    Position pos = m_position + dt * m_velocity * direction;
+    if (m_map->is_in(pos)) {
+      m_position = pos;
+    } else {
+      m_position = m_map->project_on_map(pos);
+    }
+  }
+};
 
-  Position get_position() { return m_position; }
+struct CircleShaped_Bounce : public CircleShaped {
+public:
+  CircleShaped_Bounce(Map *map, double radius, double velocity = 0.4,
+                      bool random_pos = false)
+      : CircleShaped(map, radius, velocity, random_pos) {
+    m_radius = radius;
+  }
 
-  void advance(double dt) {
+  CircleShaped_Bounce() : CircleShaped() {}
+
+  void advance(double dt) override {
     Position direction({std::cos(m_angle), std::sin(m_angle)});
     Position pos = m_position + dt * m_velocity * direction;
     if (m_map->is_in(pos)) {
@@ -80,40 +118,15 @@ struct Bounce {
       m_angle = rand_angle();
     }
   }
-  bool is_in_death_zone(Position pos) {
-    if ((m_position.x - pos.x) * (m_position.x - pos.x) +
-            (m_position.y - pos.y) * (m_position.y - pos.y) <
-        m_radius * m_radius) {
-      return true;
-    }
-    return false;
-  }
-
-  void randomize_position() {}
-
-  void draw(sf::RenderWindow *window, double window_size) const {
-    sf::CircleShape death(m_radius * window_size);
-    death.setPosition(m_position.x * window_size, m_position.y * window_size);
-    death.setFillColor(sf::Color::Red);
-    death.setOrigin(m_radius * window_size, m_radius * window_size);
-    window->draw(death);
-  }
 };
 
-struct Straigth {
-  Position m_position;
-  Map *m_map;
-  double m_radius;
-  double m_velocity = 0.2;
-  double m_angle;
+struct CircleShaped_Straight : public CircleShaped {
+public:
+  CircleShaped_Straight(Map *map, double radius, double velocity = 0.4,
+                        bool random_pos = false)
+      : CircleShaped(map, radius, velocity, random_pos) {}
 
-  Straigth(Map *map, double radius)
-      : m_position(map->rnd_position()), m_map(map), m_radius(radius),
-        m_angle(rand_angle()) {}
-
-  Straigth() {}
-
-  Position get_position() { return m_position; }
+  CircleShaped_Straight() : CircleShaped() {}
 
   void advance(double dt) {
     Position direction({std::cos(m_angle), std::sin(m_angle)});
@@ -124,24 +137,6 @@ struct Straigth {
       m_position = m_map->project_on_map(pos);
     }
     m_angle += dt * (rand_angle() - M_PI);
-  }
-  bool is_in_death_zone(Position pos) {
-    if ((m_position.x - pos.x) * (m_position.x - pos.x) +
-            (m_position.y - pos.y) * (m_position.y - pos.y) <
-        m_radius * m_radius) {
-      return true;
-    }
-    return false;
-  }
-
-  void randomize_position() {}
-
-  void draw(sf::RenderWindow *window, double window_size) const {
-    sf::CircleShape death(m_radius * window_size);
-    death.setPosition(m_position.x * window_size, m_position.y * window_size);
-    death.setFillColor(sf::Color::Red);
-    death.setOrigin(m_radius * window_size, m_radius * window_size);
-    window->draw(death);
   }
 };
 }; // namespace Predator

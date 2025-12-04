@@ -105,7 +105,7 @@ private:
     if (condition_end_of_generation()) {
       reproduction_round();
       //   move_safe_zone();
-      m_predator.randomize_position();
+      m_predator.clear_position();
       m_generation++;
       m_time -= m_time;
     }
@@ -298,11 +298,11 @@ private:
     // text_panel +=
     //     "Size of the safe zone : " + std::to_string(m_safe_zone.radius) +
     //     "\n";
-    text_panel +=
-        "Size of the predator: " + std::to_string(m_predator.m_radius) + "\n";
-    text_panel +=
-        "Speed of the predator: " + std::to_string(m_predator.m_velocity) +
-        "\n";
+    // text_panel +=
+    //     "Size of the predator: " + std::to_string(m_predator.m_radius) + "\n";
+    // text_panel +=
+    //     "Speed of the predator: " + std::to_string(m_predator.m_velocity) +
+    //     "\n";
     text_panel += "dt = " + std::to_string(dt) + "\n";
     text_panel += "\n";
 
