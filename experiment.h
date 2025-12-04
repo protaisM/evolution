@@ -53,6 +53,9 @@ private:
   double m_zoom;
   double m_dt;
 
+  // for display
+  unsigned int m_mouse_selected = 0;
+
 public:
   Experiment(const char title[40], Map *map, double predator_radius = 0.1,
              double mouse_radius = 0.3, unsigned int evolutive_pressure = 4,
@@ -295,16 +298,17 @@ private:
     text_panel +=
         "Mice sight radius: " + std::to_string(m_mice[0].get_sight_radius()) +
         "\n";
+    text_panel += "dt = " + std::to_string(dt) + "\n\n";
     // text_panel +=
     //     "Size of the safe zone : " + std::to_string(m_safe_zone.radius) +
     //     "\n";
     // text_panel +=
-    //     "Size of the predator: " + std::to_string(m_predator.m_radius) + "\n";
+    //     "Size of the predator: " + std::to_string(m_predator.m_radius) +
+    //     "\n";
     // text_panel +=
     //     "Speed of the predator: " + std::to_string(m_predator.m_velocity) +
     //     "\n";
-    text_panel += "dt = " + std::to_string(dt) + "\n";
-    text_panel += "\n";
+    text_panel += m_mice[m_mouse_selected].informations() + "\n";
 
     panel.setString(text_panel);
     panel.setFillColor(sf::Color::White);

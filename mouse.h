@@ -9,6 +9,7 @@
 #include <array>
 #include <cmath>
 #include <cstdlib>
+#include <string>
 
 struct Color {
   int r;
@@ -82,9 +83,10 @@ protected:
   virtual void update_angle_and_velocity(Position predator_position,
                                          double dt) = 0;
 
-  virtual void print() {
-    std::cout << "I'm just a base mouse, surely this is a mistake!"
-              << std::endl;
+  virtual void print() { std::cout << informations() << std::endl; }
+
+  virtual std::string informations() const {
+    return "I'm just a base mouse, surely this is a mistake!\n";
   }
 
 public:
@@ -150,15 +152,20 @@ public:
 
   SimpleMouse() : BaseMouse<4, 2, 20, 100>() {}
 
-  virtual void print() override {
-    std::cout << "A simple mouse at position (" << m_position.x << ","
-              << m_position.y << "), with velocity " << m_velocity
-              << " and direction " << m_angle << std::endl;
+  virtual void print() override { std::cout << informations(); }
+
+  virtual std::string informations() const override {
+    std::string result;
+    result += "A simple mouse at position (" + std::to_string(m_position.x) +
+              "," + std::to_string(m_position.y) + "), with velocity " +
+              std::to_string(m_velocity) + " and direction " +
+              std::to_string(m_angle) + "\n";
     if (m_is_alive) {
-      std::cout << "It is alive!!" << std::endl;
+      result += "It is alive!!\n";
     }
-    std::cout << "Its brain is:" << std::endl;
-    m_brain.print();
+    result += "Its brain is:\n";
+    result += m_brain.informations();
+    return result;
   }
 
 protected:

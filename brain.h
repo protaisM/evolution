@@ -3,6 +3,7 @@
 #include <array>
 #include <cmath>
 #include <iostream>
+#include <string>
 #include <vector>
 
 inline unsigned int rnd_int_smaller_than(unsigned int bound) {
@@ -124,26 +125,30 @@ public:
     return output;
   }
 
-  void print() {
-    std::cout << "Nodes:" << std::endl;
+  void print() { std::cout << informations() << std::endl; }
+
+  std::string informations() const {
+    std::string result;
+    result += "Nodes:\n";
     for (unsigned int i = 0; i < NB_IN_NODES; i++) {
-      std::cout << "(" << m_nodes[i].get_value() << ")";
+      result += "(" + std::to_string(m_nodes[i].get_value()) + ")";
     }
-    std::cout << std::endl;
+    result += "\n";
     unsigned int hidden_node_beginning = NB_IN_NODES + NB_OUT_NODES;
     for (unsigned int i = hidden_node_beginning;
          i < hidden_node_beginning + m_nb_hidden_nodes; i++) {
-      std::cout << "(" << m_nodes[i].get_value() << ")";
+      result += "(" + std::to_string(m_nodes[i].get_value()) + ")";
     }
-    std::cout << std::endl;
+    result += "\n";
     for (unsigned int i = NB_IN_NODES; i < hidden_node_beginning; i++) {
-      std::cout << "(" << m_nodes[i].get_value() << ")";
+      result += "(" + std::to_string(m_nodes[i].get_value()) + ")";
     }
-    std::cout << std::endl << "Connections:" << std::endl;
+    result += "\nConnections:\n";
     for (unsigned int i = 0; i < m_nb_connections; i++) {
-      std::cout << "(" << m_connections[i].idx_node_in << ")" << "-->" << "("
-                << m_connections[i].idx_node_out << ")" << std::endl;
+      result += "(" + std::to_string(m_connections[i].idx_node_in) + ") --> (" +
+                std::to_string(m_connections[i].idx_node_out) + ")\n";
     }
+    return result;
   }
 
   void mutate(double mutation_strength) {
