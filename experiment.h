@@ -1,6 +1,8 @@
 #pragma once
 
 #include "brain.h"
+#include "map.h"
+#include "predator.h"
 
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Font.hpp>
@@ -31,11 +33,9 @@ enum Screen { FULL, ONLY_MAP, ONLY_LEGEND, EMPTY };
 //   bool is_in(std::array<double, 2>) const;
 // };
 
-template <typename Mouse, typename Predator, typename Map,
-          unsigned int MICE_NUMBER>
-class Experiment {
+template <typename Mouse, unsigned int MICE_NUMBER> class Experiment {
 private:
-  Predator m_predator;
+  Predator::BasePredator *m_predator;
   std::array<Mouse, MICE_NUMBER> m_mice;
   unsigned int m_nb_alive_mice;
   // Safe_zone m_safe_zone;
@@ -57,11 +57,11 @@ private:
   unsigned int m_mouse_selected = 0;
 
 public:
-  Experiment(const char title[40], Map *map, double predator_radius = 0.1,
+  Experiment(const char title[40], Map *map, Predator::BasePredator *predator,
              double mouse_radius = 0.3, unsigned int evolutive_pressure = 4,
              double mutation_strength = 0.1, int duration_generation = 200)
-      : m_nb_alive_mice(MICE_NUMBER), m_time(0.0), m_generation(0), m_map(map),
-        m_evolutive_pressure(evolutive_pressure),
+      : m_predator(predator), m_nb_alive_mice(MICE_NUMBER), m_time(0.0),
+        m_generation(0), m_map(map), m_evolutive_pressure(evolutive_pressure),
         m_mutation_strength(mutation_strength),
         m_duration_generation(duration_generation), m_window_size(960),
         m_zoom(1.), m_dt(0.005) {
@@ -69,7 +69,6 @@ public:
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
       m_mice[i] = Mouse(m_map, mouse_radius);
     }
-    m_predator = Predator(m_map, predator_radius);
   }
 
   void run_on_background() {
@@ -91,15 +90,16 @@ public:
 private:
   void do_one_step() {
     m_time = m_time + m_dt;
-    m_predator.advance(m_dt);
+    m_predator->advance(m_dt);
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
       if (!m_mice[i].is_alive()) {
         continue;
       }
-      if (!m_mice[i].advance(m_dt, m_predator.get_position())) {
+      if (!m_mice[i].advance(m_dt, m_predator->get_position())) {
         m_nb_alive_mice--;
       }
-      if (m_predator.is_in_death_zone(m_mice[i].get_position())) {
+      if (m_predator->is_in_death_zone(m_mice[i].get_position(),
+                                       m_time / m_duration_generation)) {
         m_mice[i].kill();
         m_nb_alive_mice--;
       }
@@ -108,7 +108,7 @@ private:
     if (condition_end_of_generation()) {
       reproduction_round();
       //   move_safe_zone();
-      m_predator.clear_position();
+      m_predator->clear_position();
       m_generation++;
       m_time -= m_time;
     }
@@ -240,7 +240,7 @@ private:
           m_mice[i].draw(window, m_zoom * m_window_size);
         }
       }
-      m_predator.draw(window, m_zoom * m_window_size);
+      m_predator->draw(window, m_zoom * m_window_size);
       m_map->draw(window, m_window_size);
       // m_safe_zone.draw(window);
       draw_legend(window, space_right, space_bottom, dt);
@@ -252,7 +252,7 @@ private:
           m_mice[i].draw(window, m_zoom * m_window_size);
         }
       }
-      m_predator.draw(window, m_zoom * m_window_size);
+      m_predator->draw(window, m_zoom * m_window_size);
       m_map->draw(window, m_window_size);
       // m_safe_zone.draw(window);
       window->display();
@@ -303,10 +303,10 @@ private:
     //     "Size of the safe zone : " + std::to_string(m_safe_zone.radius) +
     //     "\n";
     // text_panel +=
-    //     "Size of the predator: " + std::to_string(m_predator.m_radius) +
+    //     "Size of the predator: " + std::to_string(m_predator->m_radius) +
     //     "\n";
     // text_panel +=
-    //     "Speed of the predator: " + std::to_string(m_predator.m_velocity) +
+    //     "Speed of the predator: " + std::to_string(m_predator->m_velocity) +
     //     "\n";
     text_panel += m_mice[m_mouse_selected].informations() + "\n";
 

@@ -3,6 +3,7 @@
 #include "map.h"
 
 #include <SFML/Graphics/CircleShape.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <cmath>
 
@@ -35,7 +36,7 @@ public:
   Position get_position() { return m_position; }
 
 public:
-  virtual bool is_in_death_zone(Position pos) = 0;
+  virtual bool is_in_death_zone(Position pos, double time) = 0;
   virtual void advance(double dt) = 0;
   virtual void draw(sf::RenderWindow *window, double window_size) const = 0;
 };
@@ -52,10 +53,8 @@ public:
 
   CircleShaped() : BasePredator() {}
 
-  bool is_in_death_zone(Position pos) override {
-    if ((m_position.x - pos.x) * (m_position.x - pos.x) +
-            (m_position.y - pos.y) * (m_position.y - pos.y) <
-        m_radius * m_radius) {
+  bool is_in_death_zone(Position pos, double /*time*/) override {
+    if (m_map->distance(pos, m_position) < m_radius) {
       return true;
     }
     return false;
@@ -128,7 +127,7 @@ public:
 
   CircleShaped_Straight() : CircleShaped() {}
 
-  void advance(double dt) {
+  void advance(double dt) override {
     Position direction({std::cos(m_angle), std::sin(m_angle)});
     Position pos = m_position + dt * m_velocity * direction;
     if (m_map->is_in(pos)) {
@@ -139,4 +138,53 @@ public:
     m_angle += dt * (rand_angle() - M_PI);
   }
 };
+
+class RectangleShaped : public BasePredator {
+protected:
+  double m_x_length;
+  double m_y_length;
+  double m_time_threshold;
+
+public:
+  RectangleShaped(Map *map, double x_length, double y_length,
+                  double time_threshold, double velocity, bool random_pos)
+      : BasePredator(map, velocity, random_pos), m_x_length(x_length),
+        m_y_length(y_length), m_time_threshold(time_threshold) {}
+
+  RectangleShaped() : BasePredator() {}
+
+  bool is_in_death_zone(Position pos, double time) override {
+    if (time <= m_time_threshold) {
+      return false;
+    }
+    if (std::abs(m_position.x - pos.x) < m_x_length / 2 and
+        std::abs(m_position.y - pos.y) < m_y_length / 2) {
+      return true;
+    }
+    return false;
+  }
+
+  void draw(sf::RenderWindow *window, double window_size) const override {
+    sf::RectangleShape death;
+    death.setSize({static_cast<float>(m_x_length * window_size),
+                   static_cast<float>(m_x_length * window_size)});
+    death.setPosition(m_position.x * window_size, m_position.y * window_size);
+    death.setFillColor(sf::Color{255, 0, 0, 127});
+    death.setOrigin(m_x_length * window_size / 2, m_y_length * window_size / 2);
+    window->draw(death);
+  }
+};
+
+struct RectangleShaped_Static : public RectangleShaped {
+public:
+  RectangleShaped_Static(Map *map, double x_length, double y_length,
+                         double time_threshold, bool random_pos = true)
+      : RectangleShaped(map, x_length, y_length, time_threshold, 0,
+                        random_pos) {}
+
+  RectangleShaped_Static() : RectangleShaped() {}
+
+  void advance(double /*dt*/) override {}
+};
+
 }; // namespace Predator
