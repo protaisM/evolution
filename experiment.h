@@ -33,9 +33,11 @@ enum Screen { FULL, ONLY_MAP, ONLY_LEGEND, EMPTY };
 //   bool is_in(std::array<double, 2>) const;
 // };
 
-template <typename Mouse, unsigned int MICE_NUMBER> class Experiment {
+template <typename Mouse, unsigned int MICE_NUMBER,
+          unsigned int PREDATORS_NUMBER>
+class Experiment {
 private:
-  Predator::BasePredator *m_predator;
+  std::array<Predator::BasePredator *, PREDATORS_NUMBER> m_predators;
   std::array<Mouse, MICE_NUMBER> m_mice;
   unsigned int m_nb_alive_mice;
   // Safe_zone m_safe_zone;
@@ -57,10 +59,11 @@ private:
   unsigned int m_mouse_selected = 0;
 
 public:
-  Experiment(const char title[40], Map *map, Predator::BasePredator *predator,
+  Experiment(const char title[40], Map *map,
+             std::array<Predator::BasePredator *, PREDATORS_NUMBER> predators,
              double mouse_radius = 0.3, unsigned int evolutive_pressure = 4,
              double mutation_strength = 0.1, int duration_generation = 200)
-      : m_predator(predator), m_nb_alive_mice(MICE_NUMBER), m_time(0.0),
+      : m_predators(predators), m_nb_alive_mice(MICE_NUMBER), m_time(0.0),
         m_generation(0), m_map(map), m_evolutive_pressure(evolutive_pressure),
         m_mutation_strength(mutation_strength),
         m_duration_generation(duration_generation), m_window_size(960),
@@ -90,17 +93,27 @@ public:
 private:
   void do_one_step() {
     m_time = m_time + m_dt;
-    m_predator->advance(m_dt);
-    for (unsigned int i = 0; i < MICE_NUMBER; i++) {
-      if (!m_mice[i].is_alive()) {
+    std::array<Position, PREDATORS_NUMBER> predators_positions;
+    for (unsigned int i = 0; i < PREDATORS_NUMBER; i++) {
+      Predator::BasePredator *predator = m_predators[i];
+      predator->advance(m_dt);
+      predators_positions[i] = predator->get_position();
+    }
+    for (Mouse &mouse : m_mice) {
+      if (!mouse.is_alive()) {
         continue;
       }
-      if (!m_mice[i].advance(m_dt, m_predator->get_position())) {
-        m_nb_alive_mice--;
-      }
-      if (m_predator->is_in_death_zone(m_mice[i].get_position(),
+      bool should_die = !mouse.advance(m_dt, predators_positions);
+      for (Predator::BasePredator *predator : m_predators) {
+        if (predator->is_in_death_zone(mouse.get_position(),
                                        m_time / m_duration_generation)) {
-        m_mice[i].kill();
+          should_die = true;
+        }
+      }
+      if (should_die) {
+        // the mouse fell outside of the map (that had no boundaries)
+        // or has been eaten by a predator...
+        mouse.kill();
         m_nb_alive_mice--;
       }
     }
@@ -108,7 +121,9 @@ private:
     if (condition_end_of_generation()) {
       reproduction_round();
       //   move_safe_zone();
-      m_predator->clear_position();
+      for (Predator::BasePredator *predator : m_predators) {
+        predator->clear_position();
+      }
       m_generation++;
       m_time -= m_time;
     }
@@ -240,7 +255,9 @@ private:
           m_mice[i].draw(window, m_zoom * m_window_size);
         }
       }
-      m_predator->draw(window, m_zoom * m_window_size);
+      for (Predator::BasePredator *predator : m_predators) {
+        predator->draw(window, m_zoom * m_window_size);
+      }
       m_map->draw(window, m_window_size);
       // m_safe_zone.draw(window);
       draw_legend(window, space_right, space_bottom, dt);
@@ -252,7 +269,9 @@ private:
           m_mice[i].draw(window, m_zoom * m_window_size);
         }
       }
-      m_predator->draw(window, m_zoom * m_window_size);
+      for (Predator::BasePredator *predator : m_predators) {
+        predator->draw(window, m_zoom * m_window_size);
+      }
       m_map->draw(window, m_window_size);
       // m_safe_zone.draw(window);
       window->display();
