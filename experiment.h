@@ -16,7 +16,7 @@
 #include <iostream>
 #include <string>
 
-enum Screen { FULL, ONLY_MAP, ONLY_LEGEND, EMPTY };
+enum Screen_type { FULL, ONLY_MAP, ONLY_LEGEND, EMPTY };
 
 // struct Safe_zone {
 //   double x;
@@ -69,7 +69,7 @@ public:
       : m_predators(predators), m_nb_alive_mice(MICE_NUMBER), m_time(0.0),
         m_generation(0), m_map(map), m_evolutive_pressure(evolutive_pressure),
         m_mutation_strength(mutation_strength),
-        m_duration_generation(duration_generation), m_window_size(960),
+        m_duration_generation(duration_generation), m_window_size(940),
         m_zoom(1.), m_dt(0.005), m_log(log) {
     strcpy(m_title, title);
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
@@ -210,7 +210,7 @@ private:
 
   void run_on_window(sf::RenderWindow *window) {
     // we start with full screen
-    Screen display = FULL;
+    Screen_type display = FULL;
     double space_right = sf::VideoMode::getDesktopMode().width - m_window_size;
     double space_bottom =
         sf::VideoMode::getDesktopMode().height - m_window_size;
@@ -223,7 +223,8 @@ private:
       draw(window, display, space_right, space_bottom, m_dt);
     }
   }
-  void handle_event(sf::RenderWindow *window, sf::Event evnt, Screen &display) {
+  void handle_event(sf::RenderWindow *window, sf::Event evnt,
+                    Screen_type &display) {
     switch (evnt.type) {
     case sf::Event::Closed: // close the window
       window->close();
@@ -258,7 +259,7 @@ private:
     }
   }
 
-  void draw(sf::RenderWindow *window, Screen display, int space_right,
+  void draw(sf::RenderWindow *window, Screen_type display, int space_right,
             int space_bottom, double dt) const {
     window->clear();
     switch (display) {
@@ -310,42 +311,21 @@ private:
     legend.setFont(font);
     std::string text_legend =
         " Mice alive: " + std::to_string(m_nb_alive_mice) + " / " +
-        std::to_string(MICE_NUMBER) + "\n";
-    text_legend += " Generation " + std::to_string(m_generation) +
-                   " and time " + std::to_string(m_time) + " / " +
-                   std::to_string(m_duration_generation);
+        std::to_string(MICE_NUMBER) + ", ";
+    text_legend += "in generation " + std::to_string(m_generation) +
+                   " at time " + std::to_string(m_time) + " / " +
+                   std::to_string(m_duration_generation) + "\n";
+    text_legend +=
+        " Evolutive pressure: " + std::to_string(m_evolutive_pressure) + ", ";
+    text_legend +=
+        "mutation strength: " + std::to_string(m_mutation_strength) + ", ";
+    text_legend +=
+        "sight radius: " + std::to_string(m_mice[0].get_sight_radius()) + "\n";
+    text_legend += " dt = " + std::to_string(dt);
     legend.setString(text_legend);
     legend.setFillColor(sf::Color::White);
     legend.setPosition(0.0f, m_window_size);
     legend.setCharacterSize(20);
-
-    // the right panel
-    sf::Text panel;
-    panel.setFont(font);
-    std::string text_panel = "Parameters of the experiment: \n";
-    text_panel +=
-        "Evolutive pressure: " + std::to_string(m_evolutive_pressure) + "\n";
-    text_panel +=
-        "Mutation strength: " + std::to_string(m_mutation_strength) + "\n";
-    text_panel +=
-        "Mice sight radius: " + std::to_string(m_mice[0].get_sight_radius()) +
-        "\n";
-    text_panel += "dt = " + std::to_string(dt) + "\n\n";
-    // text_panel +=
-    //     "Size of the safe zone : " + std::to_string(m_safe_zone.radius) +
-    //     "\n";
-    // text_panel +=
-    //     "Size of the predator: " + std::to_string(m_predator->m_radius) +
-    //     "\n";
-    // text_panel +=
-    //     "Speed of the predator: " + std::to_string(m_predator->m_velocity) +
-    //     "\n";
-    text_panel += m_mice[m_mouse_selected].informations() + "\n";
-
-    panel.setString(text_panel);
-    panel.setFillColor(sf::Color::White);
-    panel.setPosition(m_window_size + 10, 0.0f);
-    panel.setCharacterSize(20);
 
     // the black boundary
     sf::RectangleShape boundary_right(
@@ -359,7 +339,9 @@ private:
 
     window->draw(boundary_right);
     window->draw(boundary_down);
-    window->draw(panel);
     window->draw(legend);
+    // right panel
+    m_log->plot(window, m_window_size + space_right, m_window_size,
+                m_window_size + space_bottom);
   }
 };

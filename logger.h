@@ -42,77 +42,60 @@ public:
     os << std::setw(4) << json_struct << std::endl;
   }
 
-  void plot() {
-    double window_width = sf::VideoMode::getDesktopMode().width;
-    double window_height = sf::VideoMode::getDesktopMode().height;
-    sf::RenderWindow window(sf::VideoMode(window_width, window_height), "Plot");
-
-    while (window.isOpen()) {
-      sf::Event event;
-      while (window.pollEvent(event)) {
-        if (event.type == sf::Event::Closed) {
-          window.close();
-        }
-      }
-
-      window.clear(sf::Color::White);
-      plot_quantity(&window, m_generation_duration, 0, "Generation duration");
-      plot_quantity(&window, m_survival_rate, 1, "Survival rate");
-      window.display();
-    }
+  void plot(sf::RenderWindow *window, double window_width, double offset_width,
+            double height_space) {
+    double nb_plots = 6;
+    double height_per_plot = height_space / nb_plots;
+    double offset_height = 0;
+    plot_quantity(window, m_generation_duration, "Generation duration",
+                  offset_width, window_width - offset_width, offset_height,
+                  height_per_plot);
+    offset_height = height_per_plot;
+    plot_quantity(window, m_survival_rate, "Survival rate", offset_width,
+                  window_width - offset_width, offset_height, height_per_plot);
   }
 
 private:
   void plot_quantity(sf::RenderWindow *window, std::vector<double> quantity,
-                     unsigned int plot_number, std::string text_legend) {
+                     std::string text_legend, double offset_width,
+                     double plot_width, double offset_height,
+                     double plot_height) {
     sf::Font font;
     font.loadFromFile("UbuntuMono-R.ttf");
 
-    double window_width = sf::VideoMode::getDesktopMode().width;
-    double window_height = sf::VideoMode::getDesktopMode().height;
-
-    double plot_width = window_width / 2;
-    double plot_height = window_height / 4;
-
-    double offset_height = plot_number * plot_height;
-    double offset_width = 0;
-    if (plot_number > 3) {
-      offset_width = plot_width;
-      offset_height -= 3 * plot_height;
-    }
-
     sf::Text legend;
     legend.setFont(font);
-    legend.setString(text_legend);
-    legend.setFillColor(sf::Color::Black);
+    legend.setString(" " + text_legend);
+    legend.setFillColor(sf::Color::White);
     legend.setPosition(offset_width, offset_height);
     legend.setCharacterSize(20);
 
     // line around the plot
+    sf::Color outline_color = sf::Color::Blue;
     sf::Vertex line_top[] = {
-        sf::Vertex(sf::Vector2f(offset_width, offset_height), sf::Color::Red),
+        sf::Vertex(sf::Vector2f(offset_width, offset_height), outline_color),
         sf::Vertex(sf::Vector2f(offset_width + plot_width, offset_height),
-                   sf::Color::Red)};
+                   outline_color)};
     sf::Vertex line_right[] = {
         sf::Vertex(
             sf::Vector2f(offset_width + plot_width, offset_height + 0.0f),
-            sf::Color::Red),
+            outline_color),
         sf::Vertex(sf::Vector2f(offset_width + plot_width,
                                 offset_height + plot_height),
-                   sf::Color::Red)};
+                   outline_color)};
     sf::Vertex line_bottom[] = {
         sf::Vertex(sf::Vector2f(offset_width + plot_width,
                                 offset_height + plot_height),
-                   sf::Color::Red),
+                   outline_color),
         sf::Vertex(
             sf::Vector2f(offset_width + 0.0f, offset_height + plot_height),
-            sf::Color::Red)};
+            outline_color)};
     sf::Vertex line_left[] = {
         sf::Vertex(
             sf::Vector2f(offset_width + 0.0f, offset_height + plot_height),
-            sf::Color::Red),
+            outline_color),
         sf::Vertex(sf::Vector2f(offset_width + 0.0f, offset_height + 0.0f),
-                   sf::Color::Red)};
+                   outline_color)};
 
     unsigned int nb_data_point = m_generation_number.size() - 1;
     double zoom_width = plot_width / (nb_data_point - 1);
@@ -122,7 +105,7 @@ private:
       unsigned int y = (1 - quantity[x]) * zoom_height;
       line[x] = sf::Vertex(
           sf::Vector2f(offset_width + x * zoom_width, offset_height + y),
-          sf::Color::Black);
+          sf::Color::White);
     }
     window->draw(legend);
     window->draw(line_right, 2, sf::Lines);
