@@ -53,6 +53,7 @@ public:
   double get_angle() const { return m_angle; }
   bool is_alive() const { return m_is_alive; }
   void kill() { m_is_alive = false; }
+  void resurrect() { m_is_alive = true; }
   void randomize_position() { m_position = m_map->rnd_position(); }
 
   double get_sight_radius() const { return m_sight_radius; }

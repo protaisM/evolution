@@ -136,7 +136,12 @@ private:
 
   void reproduction_round() {
     if (m_nb_alive_mice <= 0) {
-      std::cerr << "No mice to reproduce" << std::endl;
+      std::cerr << "No mice to reproduce, everybody gets a second chance!"
+                << std::endl;
+      for (Mouse &mouse : m_mice) {
+        mouse.resurrect();
+      }
+      m_nb_alive_mice = MICE_NUMBER;
       return;
     }
     unsigned int reproduction_rate = MICE_NUMBER / m_nb_alive_mice;
