@@ -164,17 +164,17 @@ public:
       change_connection_weight(mutation_strength);
     }
     rnd = rand_0_1();
-    if (2 * rnd < mutation_strength) {
+    if (5 * rnd < mutation_strength) {
       // std::cout << "Random connection created" << std::endl;
       add_random_connection();
     }
     rnd = rand_0_1();
-    if (3 * rnd < mutation_strength) {
+    if (5 * rnd < mutation_strength) {
       // std::cout << "Random node created" << std::endl;
       add_random_node();
     }
     rnd = rand_0_1();
-    if (4 * rnd < mutation_strength) {
+    if (5 * rnd < mutation_strength) {
       // std::cout << "Random connection removed" << std::endl;
       remove_random_connection();
     }

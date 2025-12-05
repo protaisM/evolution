@@ -7,6 +7,15 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # endif()
 add_compile_options(-Wall -Wpedantic -Wextra)
 
+# json library
+set(JSON_BuildTests OFF CACHE INTERNAL "")
+add_subdirectory(nlohmann_json)
+
+# sfml
 find_package(SFML 2.5 COMPONENTS graphics window system REQUIRED)
+
 add_executable(test test.cc)
+
+# link all the libraries
 target_link_libraries(test PRIVATE sfml-graphics sfml-window sfml-system)
+target_link_libraries(test PRIVATE nlohmann_json::nlohmann_json)

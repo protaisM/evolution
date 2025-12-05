@@ -167,7 +167,7 @@ public:
   void draw(sf::RenderWindow *window, double window_size) const override {
     sf::RectangleShape death;
     death.setSize({static_cast<float>(m_x_length * window_size),
-                   static_cast<float>(m_x_length * window_size)});
+                   static_cast<float>(m_y_length * window_size)});
     death.setPosition(m_position.x * window_size, m_position.y * window_size);
     death.setFillColor(sf::Color{255, 0, 0, 127});
     death.setOrigin(m_x_length * window_size / 2, m_y_length * window_size / 2);

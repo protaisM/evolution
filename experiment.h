@@ -1,6 +1,7 @@
 #pragma once
 
 #include "brain.h"
+#include "logger.h"
 #include "map.h"
 #include "predator.h"
 
@@ -54,6 +55,7 @@ private:
   double m_window_size;
   double m_zoom;
   double m_dt;
+  Logger *m_log;
 
   // for display
   unsigned int m_mouse_selected = 0;
@@ -61,13 +63,14 @@ private:
 public:
   Experiment(const char title[40], Map *map,
              std::array<Predator::BasePredator *, PREDATORS_NUMBER> predators,
-             double mouse_radius = 0.3, unsigned int evolutive_pressure = 4,
+             Logger *log, double mouse_radius = 0.3,
+             unsigned int evolutive_pressure = 4,
              double mutation_strength = 0.1, int duration_generation = 200)
       : m_predators(predators), m_nb_alive_mice(MICE_NUMBER), m_time(0.0),
         m_generation(0), m_map(map), m_evolutive_pressure(evolutive_pressure),
         m_mutation_strength(mutation_strength),
         m_duration_generation(duration_generation), m_window_size(960),
-        m_zoom(1.), m_dt(0.005) {
+        m_zoom(1.), m_dt(0.005), m_log(log) {
     strcpy(m_title, title);
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
       m_mice[i] = Mouse(m_map, mouse_radius);
@@ -75,12 +78,14 @@ public:
   }
 
   void run_on_background() {
+    m_log->store_begin(m_generation);
     while (true) {
       do_one_step();
     }
   }
 
   void run_and_display() {
+    m_log->store_begin(m_generation);
     double space_right = sf::VideoMode::getDesktopMode().width - m_window_size;
     double space_bottom =
         sf::VideoMode::getDesktopMode().height - m_window_size;
@@ -119,6 +124,8 @@ private:
     }
 
     if (condition_end_of_generation()) {
+      m_log->store_end(m_time / m_duration_generation,
+                       (double)m_nb_alive_mice / (double)MICE_NUMBER);
       reproduction_round();
       //   move_safe_zone();
       for (Predator::BasePredator *predator : m_predators) {
@@ -126,6 +133,7 @@ private:
       }
       m_generation++;
       m_time -= m_time;
+      m_log->store_begin(m_generation);
     }
   }
 
