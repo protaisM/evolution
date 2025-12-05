@@ -5,33 +5,22 @@
 
 int main() {
   srand(time(NULL));
-  // Brain<1, 2, 10, 100> brain(2);
-  // brain.print();
-  // std::array<double, 2> result = brain.activate({1, 0, -1});
-  // // brain.print();
-  // // result = brain.activate({1, 0, -1});
-  // brain.print();
-  // for (int i = 0; i < 10; i++) {
-  //   brain.mutate(0.5);
-  //   brain.print();
-  // }
 
-  // SimpleMouse my_mouse([&my_map]() { return my_map.rnd_position(); });
-  // SimpleMouse other_one = my_mouse;
-  // other_one.mutate(0.5);
+  Circle my_map(1, true);
+  // SimpleMouse<1> my_mouse(&my_map, 0.8);
+  // Position predator({0.1, 0.2});
   // my_mouse.print();
-  // my_mouse.advance(0.1, {0.1, 0.4},
-  //                  [&my_map](Position pos) { return my_map.is_in(pos); });
+  // my_mouse.advance(0.1, {predator});
   // my_mouse.print();
-  // other_one.print();
-  // other_one.advance(0.1, {0.1, 0.4},
-  //                   [&my_map](Position pos) { return my_map.is_in(pos); });
-  // other_one.print();
 
-  Square my_map(1, false);
-  Experiment<SimpleMouse, Predator::Bounce, Square, 1000> my_experiment("numerous", &my_map);
-  // my_experiment.resume("cat_mice1");
-  my_experiment.run_and_display(0.01);
+  Predator::CircleShaped_Bounce predator1(&my_map, 0.1, 0.2);
+  Predator::CircleShaped_Bounce predator2(&my_map, 0.1, 0.3);
+  // Predator::CircleShaped_Bounce predator3(&my_map, 0.1, 0.4);
+  std::array<Predator::BasePredator *, 2> predators(
+      {&predator1, &predator2});
+  Experiment<SimpleMouse<2>, 1000, 2> my_experiment(
+      "Circle w bound - 10^mut", &my_map, predators, 0.5, 2, 0.05, 200);
+  my_experiment.run_and_display();
 
   return 0;
 }
