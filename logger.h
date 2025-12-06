@@ -47,12 +47,12 @@ public:
     double nb_plots = 6;
     double height_per_plot = height_space / nb_plots;
     double offset_height = 0;
+    plot_quantity(window, m_survival_rate, "Survival rate", offset_width,
+                  window_width - offset_width, offset_height, height_per_plot);
+    offset_height = height_per_plot;
     plot_quantity(window, m_generation_duration, "Generation duration",
                   offset_width, window_width - offset_width, offset_height,
                   height_per_plot);
-    offset_height = height_per_plot;
-    plot_quantity(window, m_survival_rate, "Survival rate", offset_width,
-                  window_width - offset_width, offset_height, height_per_plot);
   }
 
 private:
@@ -99,6 +99,7 @@ private:
 
     unsigned int nb_data_point = m_generation_number.size() - 1;
     double zoom_width = plot_width / (nb_data_point - 1);
+    zoom_width = std::min(zoom_width, 10.);
     double zoom_height = plot_height;
     sf::VertexArray line(sf::LinesStrip, nb_data_point);
     for (unsigned int x = 0; x < nb_data_point; ++x) {

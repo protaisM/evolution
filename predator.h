@@ -6,6 +6,7 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <cmath>
+#include <iostream>
 
 namespace Predator {
 inline double rand_angle() {
@@ -44,16 +45,18 @@ public:
 class CircleShaped : public BasePredator {
 protected:
   double m_radius;
+  double const m_time_threshold = 0.005;
 
 public:
   CircleShaped(Map *map, double radius, double velocity, bool random_pos)
-      : BasePredator(map, velocity, random_pos) {
-    m_radius = radius;
-  }
+      : BasePredator(map, velocity, random_pos), m_radius(radius) {}
 
   CircleShaped() : BasePredator() {}
 
-  bool is_in_death_zone(Position pos, double /*time*/) override {
+  bool is_in_death_zone(Position pos, double time) override {
+    if (time <= m_time_threshold) {
+      return false;
+    }
     if (m_map->distance(pos, m_position) < m_radius) {
       return true;
     }

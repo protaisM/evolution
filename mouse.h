@@ -40,8 +40,9 @@ protected:
 
 public:
   BaseMouse(Map *map, double sight_radius)
-      : m_brain(3), m_map(map), m_position(map->rnd_position()), m_velocity(1),
-        m_angle(rand_angle()), m_sight_radius(sight_radius), m_is_alive(true) {
+      : m_brain(NB_IN_NODES), m_map(map), m_position(map->rnd_position()),
+        m_velocity(1), m_angle(rand_angle()), m_sight_radius(sight_radius),
+        m_is_alive(true) {
     m_color.r = std::rand() % 255;
     m_color.g = std::rand() % 255;
     m_color.b = std::rand() % 255;
@@ -101,6 +102,10 @@ public:
 
   void mutate(double mutation_strength) {
     m_brain.mutate(mutation_strength);
+    m_sight_radius += (2 * rand_0_1() - 1) * mutation_strength;
+    if (m_sight_radius < 0) {
+      m_sight_radius = 0;
+    }
     unsigned int rnd = rnd_int_smaller_than(6);
     switch (rnd) {
     case 0: {
