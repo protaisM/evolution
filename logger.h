@@ -29,6 +29,12 @@ public:
   }
 
   void store_end(double generation_duration, double survival_rate) {
+    if (generation_duration > 1) {
+      generation_duration = 1;
+    }
+    if (survival_rate > 1) {
+      survival_rate = 1;
+    }
     m_generation_duration.push_back(generation_duration);
     m_survival_rate.push_back(survival_rate);
   }

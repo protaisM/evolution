@@ -3,6 +3,7 @@
 #include "brain.h"
 #include "logger.h"
 #include "map.h"
+#include "position.h"
 #include "predator.h"
 
 #include <SFML/Graphics/CircleShape.hpp>
@@ -98,17 +99,17 @@ public:
 private:
   void do_one_step() {
     m_time = m_time + m_dt;
-    std::array<Position, PREDATORS_NUMBER> predators_positions;
+    std::array<PositionAngle, PREDATORS_NUMBER> predators_states;
     for (unsigned int i = 0; i < PREDATORS_NUMBER; i++) {
       Predator::BasePredator *predator = m_predators[i];
       predator->advance(m_dt);
-      predators_positions[i] = predator->get_position();
+      predators_states[i] = predator->get_state();
     }
     for (Mouse &mouse : m_mice) {
       if (!mouse.is_alive()) {
         continue;
       }
-      bool should_die = !mouse.advance(m_dt, predators_positions);
+      bool should_die = !mouse.advance(m_dt, predators_states);
       for (Predator::BasePredator *predator : m_predators) {
         if (predator->is_in_death_zone(mouse.get_position(),
                                        m_time / m_duration_generation)) {

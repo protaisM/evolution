@@ -10,7 +10,7 @@
 
 class Map {
 protected:
-  bool m_has_boundary;
+  bool m_has_safe_boundary;
 
 public:
   virtual bool is_in(Position) const = 0;
@@ -21,7 +21,7 @@ public:
   virtual void draw(sf::RenderWindow *window, double window_size) const = 0;
   virtual double get_radius() const = 0;
 
-  bool has_boundary() { return m_has_boundary; }
+  bool has_boundary() { return m_has_safe_boundary; }
 };
 
 class Square : public Map {
@@ -31,7 +31,7 @@ private:
 public:
   Square(double side_length, bool has_boundary = true)
       : m_side_length(side_length) {
-    m_has_boundary = has_boundary;
+    m_has_safe_boundary = has_boundary;
   }
 
   virtual bool is_in(Position pos) const override {
@@ -101,7 +101,7 @@ private:
 
 public:
   Circle(double diameter, bool has_boundary = true) : m_diameter(diameter) {
-    m_has_boundary = has_boundary;
+    m_has_safe_boundary = has_boundary;
   }
 
   virtual bool is_in(Position pos) const override {
@@ -167,7 +167,7 @@ private:
 
 public:
   Torus(double side_length) : m_side_length(side_length) {
-    m_has_boundary = true;
+    m_has_safe_boundary = true;
   }
 
   virtual bool is_in(Position pos) const override {

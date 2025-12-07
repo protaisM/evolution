@@ -45,3 +45,8 @@ inline std::ostream &operator<<(std::ostream &in, const Position &pos) {
   in << "(" << pos.x << "," << pos.y << ")";
   return in;
 }
+
+struct PositionAngle {
+  Position position;
+  double angle;
+};

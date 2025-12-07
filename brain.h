@@ -103,6 +103,7 @@ public:
       Connection connection(hidden_node_beginning + hidden_node_idx, i);
       m_connections[i] = connection;
     }
+    set_to_zero();
   }
 
   std::array<double, NB_OUT_NODES>

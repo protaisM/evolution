@@ -8,17 +8,17 @@ int main() {
 
   Circle my_map(1, false);
   // SimpleMouse<1> my_mouse(&my_map, 0.8);
-  // Position predator({0.1, 0.2});
+  // PositionAngle predator({{0.1, 0.2}, 0});
   // my_mouse.print();
   // my_mouse.advance(0.1, {predator});
   // my_mouse.print();
 
   Logger my_log("test_log");
 
-  Predator::RectangleShaped_Static predator1(&my_map, 1., 1., 0.95, false);
-  // Predator::CircleShaped_Bounce bouncy1(&my_map, 0.1, 0.03);
+  Predator::RectangleShaped_Static predator1(&my_map, 2., 1., 0.95, false);
+  // Predator::CircleShaped_Bounce bouncy1(&my_map, 0.1, 0.1);
   // Predator::CircleShaped_Bounce bouncy2(&my_map, 0.1, 0.05);
-  // Predator::CircleShaped_Bounce bouncy3(&my_map, 0.1, 0.1);
+  // Predator::CircleShaped_Bounce bouncy3(&my_map, 0.1, 0.2);
   // Predator::CircleShaped_RunInCircle circle(&my_map, 0.1, 0.1);
   // Predator::CircleShaped_RunInCircle circle2(&my_map, 0.1, 0.3);
   // Predator::CircleShaped_Straight on_torus(&my_map, 0.1, 0.5);
