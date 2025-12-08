@@ -49,14 +49,14 @@ private:
 
   // constant parameters
   Map *m_map;
+  Logger *m_log;
   char m_title[40];
   unsigned int m_evolutive_pressure;
   double m_mutation_strength;
   int m_duration_generation;
-  double m_window_size;
+  double m_map_display_size;
   double m_zoom;
   double m_dt;
-  Logger *m_log;
 
   // for display
   unsigned int m_mouse_selected = 0;
@@ -68,10 +68,10 @@ public:
              unsigned int evolutive_pressure = 4,
              double mutation_strength = 0.1, int duration_generation = 200)
       : m_predators(predators), m_nb_alive_mice(MICE_NUMBER), m_time(0.0),
-        m_generation(0), m_map(map), m_evolutive_pressure(evolutive_pressure),
+        m_generation(0), m_map(map), m_log(log), m_evolutive_pressure(evolutive_pressure),
         m_mutation_strength(mutation_strength),
-        m_duration_generation(duration_generation), m_window_size(940),
-        m_zoom(1.), m_dt(0.005), m_log(log) {
+        m_duration_generation(duration_generation), m_map_display_size(940),
+        m_zoom(1.), m_dt(0.005) {
     strcpy(m_title, title);
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
       m_mice[i] = Mouse(m_map, mouse_radius);
@@ -87,11 +87,12 @@ public:
 
   void run_and_display() {
     m_log->store_begin(m_generation);
-    double space_right = sf::VideoMode::getDesktopMode().width - m_window_size;
+    double space_right =
+        sf::VideoMode::getDesktopMode().width - m_map_display_size;
     double space_bottom =
-        sf::VideoMode::getDesktopMode().height - m_window_size;
-    sf::RenderWindow window(sf::VideoMode(m_window_size + space_right,
-                                          m_window_size + space_bottom),
+        sf::VideoMode::getDesktopMode().height - m_map_display_size;
+    sf::RenderWindow window(sf::VideoMode(m_map_display_size + space_right,
+                                          m_map_display_size + space_bottom),
                             std::string(m_title));
     run_on_window(&window);
   }
@@ -212,9 +213,10 @@ private:
   void run_on_window(sf::RenderWindow *window) {
     // we start with full screen
     Screen_type display = FULL;
-    double space_right = sf::VideoMode::getDesktopMode().width - m_window_size;
+    double space_right =
+        sf::VideoMode::getDesktopMode().width - m_map_display_size;
     double space_bottom =
-        sf::VideoMode::getDesktopMode().height - m_window_size;
+        sf::VideoMode::getDesktopMode().height - m_map_display_size;
     while (window->isOpen()) {
       sf::Event evnt;
       while (window->pollEvent(evnt)) {
@@ -267,13 +269,13 @@ private:
     case FULL:
       for (size_t i = 0; i < MICE_NUMBER; i++) {
         if (m_mice[i].is_alive()) {
-          m_mice[i].draw(window, m_zoom * m_window_size);
+          m_mice[i].draw(window, m_zoom * m_map_display_size);
         }
       }
       for (Predator::BasePredator *predator : m_predators) {
-        predator->draw(window, m_zoom * m_window_size);
+        predator->draw(window, m_zoom * m_map_display_size);
       }
-      m_map->draw(window, m_window_size);
+      m_map->draw(window, m_map_display_size);
       // m_safe_zone.draw(window);
       draw_legend(window, space_right, space_bottom, dt);
       window->display();
@@ -281,13 +283,13 @@ private:
     case ONLY_MAP:
       for (size_t i = 0; i < MICE_NUMBER; i++) {
         if (m_mice[i].is_alive()) {
-          m_mice[i].draw(window, m_zoom * m_window_size);
+          m_mice[i].draw(window, m_zoom * m_map_display_size);
         }
       }
       for (Predator::BasePredator *predator : m_predators) {
-        predator->draw(window, m_zoom * m_window_size);
+        predator->draw(window, m_zoom * m_map_display_size);
       }
-      m_map->draw(window, m_window_size);
+      m_map->draw(window, m_map_display_size);
       // m_safe_zone.draw(window);
       window->display();
       break;
@@ -325,24 +327,25 @@ private:
     text_legend += " dt = " + std::to_string(dt);
     legend.setString(text_legend);
     legend.setFillColor(sf::Color::White);
-    legend.setPosition(0.0f, m_window_size);
+    legend.setPosition(0.0f, m_map_display_size);
     legend.setCharacterSize(20);
 
     // the black boundary
     sf::RectangleShape boundary_right(
-        sf::Vector2f(space_right, m_window_size + space_bottom));
-    boundary_right.setPosition(m_window_size, 0.0f);
+        sf::Vector2f(space_right, m_map_display_size + space_bottom));
+    boundary_right.setPosition(m_map_display_size, 0.0f);
     boundary_right.setFillColor(sf::Color::Black);
 
-    sf::RectangleShape boundary_down(sf::Vector2f(m_window_size, space_bottom));
-    boundary_down.setPosition(0.0f, m_window_size);
+    sf::RectangleShape boundary_down(
+        sf::Vector2f(m_map_display_size, space_bottom));
+    boundary_down.setPosition(0.0f, m_map_display_size);
     boundary_down.setFillColor(sf::Color::Black);
 
     window->draw(boundary_right);
     window->draw(boundary_down);
     window->draw(legend);
     // right panel
-    m_log->plot(window, m_window_size + space_right, m_window_size,
-                m_window_size + space_bottom);
+    m_log->plot(window, m_map_display_size + space_right, m_map_display_size,
+                m_map_display_size + space_bottom);
   }
 };

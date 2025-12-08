@@ -1,6 +1,7 @@
 #pragma once
 
 #include "brain.h"
+#include "ellipse.hpp"
 #include "map.h"
 #include "position.h"
 
@@ -136,12 +137,15 @@ public:
   }
 
   void draw(sf::RenderWindow *window, double zoom) const {
-    sf::CircleShape to_display;
-    to_display.setRadius(5);
+    EllipseShape to_display;
+    float radius = 7;
+    to_display.setRadius(
+        {(float)radius, (float)(radius + radius * m_velocity)});
     to_display.setPosition(zoom * m_state.position.x,
                            zoom * m_state.position.y);
-    to_display.setOrigin(5.0f, 5.0f);
+    to_display.setOrigin(radius, radius + radius * m_velocity);
     to_display.setFillColor(sf::Color(m_color.r, m_color.g, m_color.b));
+    to_display.rotate((M_PI / 2 + m_state.angle) / (2 * M_PI) * 360);
     window->draw(to_display);
   }
 };
@@ -212,7 +216,7 @@ protected:
     input_to_brain[3 * NB_PREDATORS + 2] = this->m_state.angle;
     output_from_brain = (this->m_brain).activate(input_to_brain);
 
-    this->m_velocity =std::abs(output_from_brain[0]);
+    this->m_velocity = std::abs(output_from_brain[0]);
     this->m_state.angle += dt * M_PI * output_from_brain[1];
     this->m_state.angle = std::fmod(this->m_state.angle, 2 * M_PI);
   }

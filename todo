@@ -1,7 +1,6 @@
-- mutation strength
+- mutation strength/proba -> proba law
 - distance on torus
 - display on torus
 - being able to modify everything during simulation
 - color mutation (+ visible)
-- add logging
-- add angle predator input to mouse
+- add nodes number and connections number to log
