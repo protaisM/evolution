@@ -62,7 +62,7 @@ private:
   unsigned int m_nb_connections;
 
 public:
-  Brain(unsigned int nb_hidden_nodes = 1)
+  Brain(unsigned int nb_hidden_nodes = 0)
       : m_nb_hidden_nodes(nb_hidden_nodes),
         m_nb_connections(NB_IN_NODES + NB_OUT_NODES) {
     /* The layout is the following:
@@ -92,16 +92,28 @@ public:
      * any input or output node should be linked to a hidden node.
      * This process is random.
      */
-    unsigned int hidden_node_idx;
-    for (unsigned int i = 0; i < NB_IN_NODES; i++) {
-      hidden_node_idx = rnd_int_smaller_than(m_nb_hidden_nodes);
-      Connection connection(i, hidden_node_beginning + hidden_node_idx);
-      m_connections[i] = connection;
-    }
-    for (unsigned int i = NB_IN_NODES; i < hidden_node_beginning; i++) {
-      hidden_node_idx = rnd_int_smaller_than(m_nb_hidden_nodes);
-      Connection connection(hidden_node_beginning + hidden_node_idx, i);
-      m_connections[i] = connection;
+    if (m_nb_hidden_nodes > 0) {
+      unsigned int hidden_node_idx;
+      for (unsigned int i = 0; i < NB_IN_NODES; i++) {
+        hidden_node_idx = rnd_int_smaller_than(m_nb_hidden_nodes);
+        Connection connection(i, hidden_node_beginning + hidden_node_idx);
+        m_connections[i] = connection;
+      }
+      for (unsigned int i = NB_IN_NODES; i < hidden_node_beginning; i++) {
+        hidden_node_idx = rnd_int_smaller_than(m_nb_hidden_nodes);
+        Connection connection(hidden_node_beginning + hidden_node_idx, i);
+        m_connections[i] = connection;
+      }
+    } else if (m_nb_hidden_nodes == 0) {
+      m_nb_connections = NB_IN_NODES;
+      unsigned int output_node_idx;
+      for (unsigned int i = 0; i < NB_IN_NODES; i++) {
+        output_node_idx = rnd_int_smaller_than(NB_OUT_NODES);
+        Connection connection(i, NB_IN_NODES + output_node_idx);
+        m_connections[i] = connection;
+      }
+    } else {
+      throw std::runtime_error("Invalid number of hidden nodes");
     }
     set_to_zero();
   }

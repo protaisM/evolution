@@ -41,7 +41,7 @@ protected:
 
 public:
   BaseMouse(Map *map, double sight_radius)
-      : m_brain(NB_IN_NODES), m_map(map),
+      : m_brain(), m_map(map),
         m_state({map->rnd_position(), rand_angle()}), m_velocity(0),
         m_sight_radius(sight_radius), m_is_alive(true) {
     m_color.r = std::rand() % 255;

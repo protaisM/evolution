@@ -68,7 +68,8 @@ public:
              unsigned int evolutive_pressure = 4,
              double mutation_strength = 0.1, int duration_generation = 200)
       : m_predators(predators), m_nb_alive_mice(MICE_NUMBER), m_time(0.0),
-        m_generation(0), m_map(map), m_log(log), m_evolutive_pressure(evolutive_pressure),
+        m_generation(0), m_map(map), m_log(log),
+        m_evolutive_pressure(evolutive_pressure),
         m_mutation_strength(mutation_strength),
         m_duration_generation(duration_generation), m_map_display_size(940),
         m_zoom(1.), m_dt(0.005) {
