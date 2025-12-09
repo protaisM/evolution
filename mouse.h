@@ -6,6 +6,7 @@
 #include "position.h"
 
 #include <SFML/Graphics.hpp>
+#include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <array>
 #include <cmath>
@@ -41,9 +42,8 @@ protected:
 
 public:
   BaseMouse(Map *map, double sight_radius)
-      : m_brain(), m_map(map),
-        m_state({map->rnd_position(), rand_angle()}), m_velocity(0),
-        m_sight_radius(sight_radius), m_is_alive(true) {
+      : m_brain(), m_map(map), m_state({map->rnd_position(), rand_angle()}),
+        m_velocity(0), m_sight_radius(sight_radius), m_is_alive(true) {
     m_color.r = std::rand() % 255;
     m_color.g = std::rand() % 255;
     m_color.b = std::rand() % 255;
@@ -101,9 +101,9 @@ public:
     return update_position(dt);
   }
 
-  void mutate(double mutation_strength) {
-    m_brain.mutate(mutation_strength);
-    m_sight_radius += (2 * rand_0_1() - 1) * mutation_strength;
+  void mutate() {
+    m_brain.mutate();
+    m_sight_radius += rand_normal();
     if (m_sight_radius < 0) {
       m_sight_radius = 0;
     }
@@ -137,16 +137,81 @@ public:
   }
 
   void draw(sf::RenderWindow *window, double zoom) const {
-    EllipseShape to_display;
+    Eggshape to_display;
     float radius = 7;
-    to_display.setRadius(
-        {(float)radius, (float)(radius + radius * m_velocity)});
+    to_display.setSize(radius);
+    to_display.setElongation(5 + radius * m_velocity / 2);
     to_display.setPosition(zoom * m_state.position.x,
                            zoom * m_state.position.y);
-    to_display.setOrigin(radius, radius + radius * m_velocity);
+    to_display.setOrigin(radius, radius);
     to_display.setFillColor(sf::Color(m_color.r, m_color.g, m_color.b));
     to_display.rotate((M_PI / 2 + m_state.angle) / (2 * M_PI) * 360);
+    to_display.setOutlineThickness(1.0f);
+    to_display.setOutlineColor(sf::Color::Black);
+
+    sf::CircleShape left_eye;
+    left_eye.setRadius(2);
+    left_eye.setPosition(zoom * m_state.position.x, zoom * m_state.position.y);
+    left_eye.setOrigin(2 + radius / 2, 2 + radius / 2 + m_velocity);
+    left_eye.setFillColor(sf::Color::White);
+    left_eye.rotate((M_PI / 2 + m_state.angle) / (2 * M_PI) * 360);
+    left_eye.setOutlineThickness(1.0f);
+    left_eye.setOutlineColor(sf::Color::Black);
+
+    sf::CircleShape right_eye;
+    right_eye.setRadius(2);
+    right_eye.setPosition(zoom * m_state.position.x, zoom * m_state.position.y);
+    right_eye.setOrigin(2 - radius / 2, 2 + radius / 2 + m_velocity);
+    right_eye.setFillColor(sf::Color::White);
+    right_eye.rotate((M_PI / 2 + m_state.angle) / (2 * M_PI) * 360);
+    right_eye.setOutlineThickness(1.0f);
+    right_eye.setOutlineColor(sf::Color::Black);
+
+    sf::CircleShape left_pupil;
+    left_pupil.setRadius(1);
+    left_pupil.setPosition(zoom * m_state.position.x,
+                           zoom * m_state.position.y);
+    left_pupil.setOrigin(1 + radius / 2, 2 + radius / 2 + m_velocity);
+    left_pupil.setFillColor(sf::Color::Black);
+    left_pupil.rotate((M_PI / 2 + m_state.angle) / (2 * M_PI) * 360);
+
+    sf::CircleShape right_pupil;
+    right_pupil.setRadius(1);
+    right_pupil.setPosition(zoom * m_state.position.x,
+                            zoom * m_state.position.y);
+    right_pupil.setOrigin(1 - radius / 2, 2 + radius / 2 + m_velocity);
+    right_pupil.setFillColor(sf::Color::Black);
+    right_pupil.rotate((M_PI / 2 + m_state.angle) / (2 * M_PI) * 360);
+
+    sf::CircleShape left_ear;
+    left_ear.setRadius(5);
+    left_ear.setPosition(zoom * m_state.position.x, zoom * m_state.position.y);
+    left_ear.setOrigin(7 + radius / 2, radius / 2);
+    left_ear.setFillColor(sf::Color(std::min(m_color.r + 30, 255),
+                                    std::min(m_color.g + 30, 255),
+                                    std::min(m_color.b + 30, 255)));
+    left_ear.rotate((M_PI / 2 + m_state.angle) / (2 * M_PI) * 360);
+    left_ear.setOutlineThickness(1.0f);
+    left_ear.setOutlineColor(sf::Color::Black);
+
+    sf::CircleShape right_ear;
+    right_ear.setRadius(5);
+    right_ear.setPosition(zoom * m_state.position.x, zoom * m_state.position.y);
+    right_ear.setOrigin(5 - 2 - radius / 2, radius / 2);
+    right_ear.setFillColor(sf::Color(std::min(m_color.r + 30, 255),
+                                     std::min(m_color.g + 30, 255),
+                                     std::min(m_color.b + 30, 255)));
+    right_ear.rotate((M_PI / 2 + m_state.angle) / (2 * M_PI) * 360);
+    right_ear.setOutlineThickness(1.0f);
+    right_ear.setOutlineColor(sf::Color::Black);
+
     window->draw(to_display);
+    window->draw(left_ear);
+    window->draw(right_ear);
+    window->draw(left_eye);
+    window->draw(right_eye);
+    window->draw(left_pupil);
+    window->draw(right_pupil);
   }
 };
 
