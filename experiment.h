@@ -52,7 +52,6 @@ private:
   Logger *m_log;
   char m_title[40];
   unsigned int m_evolutive_pressure;
-  double m_mutation_strength;
   int m_duration_generation;
   double m_map_display_size;
   double m_zoom;
@@ -65,12 +64,10 @@ public:
   Experiment(const char title[40], Map *map,
              std::array<Predator::BasePredator *, PREDATORS_NUMBER> predators,
              Logger *log, double mouse_radius = 0.3,
-             unsigned int evolutive_pressure = 4,
-             double mutation_strength = 0.1, int duration_generation = 200)
+             unsigned int evolutive_pressure = 4, int duration_generation = 200)
       : m_predators(predators), m_nb_alive_mice(MICE_NUMBER), m_time(0.0),
         m_generation(0), m_map(map), m_log(log),
         m_evolutive_pressure(evolutive_pressure),
-        m_mutation_strength(mutation_strength),
         m_duration_generation(duration_generation), m_map_display_size(940),
         m_zoom(1.), m_dt(0.005) {
     strcpy(m_title, title);
@@ -190,7 +187,7 @@ private:
           break;
         }
         new_mice[index_new_mouse] = m_mice[index_mouse_to_reproduce];
-        new_mice[index_new_mouse].mutate(m_mutation_strength);
+        new_mice[index_new_mouse].mutate();
         new_mice[index_new_mouse].randomize_position();
       }
       count_alive_mice++;
@@ -204,7 +201,7 @@ private:
          index_new_mouse < MICE_NUMBER; index_new_mouse++) {
       mouse_to_copy = rnd_int_smaller_than(m_nb_alive_mice);
       new_mice[index_new_mouse] = new_mice[mouse_to_copy];
-      new_mice[index_new_mouse].mutate(m_mutation_strength);
+      new_mice[index_new_mouse].mutate();
       new_mice[index_new_mouse].randomize_position();
     }
     m_mice = new_mice;
@@ -265,7 +262,7 @@ private:
 
   void draw(sf::RenderWindow *window, Screen_type display, int space_right,
             int space_bottom, double dt) const {
-    window->clear();
+    window->clear(sf::Color({50, 50, 50}));
     switch (display) {
     case FULL:
       for (size_t i = 0; i < MICE_NUMBER; i++) {
@@ -321,8 +318,6 @@ private:
                    std::to_string(m_duration_generation) + "\n";
     text_legend +=
         " Evolutive pressure: " + std::to_string(m_evolutive_pressure) + ", ";
-    text_legend +=
-        "mutation strength: " + std::to_string(m_mutation_strength) + ", ";
     text_legend +=
         "sight radius: " + std::to_string(m_mice[0].get_sight_radius()) + "\n";
     text_legend += " dt = " + std::to_string(dt);

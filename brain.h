@@ -16,6 +16,14 @@ inline unsigned int rnd_int_smaller_than(unsigned int bound) {
 }
 
 inline double rand_0_1() { return (double)std::rand() / ((double)RAND_MAX); }
+inline double rand_normal() {
+  double result = -6;
+  for (unsigned int i = 0; i < 12; i++) {
+    result += rand_0_1();
+  }
+  result /= 6;
+  return result;
+}
 
 class Node {
 private:
@@ -46,9 +54,9 @@ struct Connection {
 
   Connection() {}
 
-  void mutate(double mutation_strength) {
-    weight += mutation_strength * (((double)rand() / RAND_MAX) * 2 - 1);
-    shift += mutation_strength * (((double)rand() / RAND_MAX) * 2 - 1);
+  void mutate() {
+    weight += rand_normal();
+    shift += rand_normal();
   }
 };
 
@@ -164,32 +172,24 @@ public:
     return result;
   }
 
-  void mutate(double mutation_strength) {
-    if (mutation_strength < 0 or mutation_strength > 1) {
-      std::cerr << "The mutation strength should be between 0 and 1."
-                << std::endl;
-      return;
+  void mutate() {
+    unsigned int choice = std::rand() % 4;
+    switch (choice) {
+    case 1: {
+      change_connection_weight();
+      break;
     }
-    // mutations, by order of likelyhood
-    double rnd = rand_0_1();
-    if (rnd < mutation_strength) {
-      // std::cout << "Random connection changed" << std::endl;
-      change_connection_weight(mutation_strength);
-    }
-    rnd = rand_0_1();
-    if (5 * rnd < mutation_strength) {
-      // std::cout << "Random connection created" << std::endl;
+    case 2: {
       add_random_connection();
+      break;
     }
-    rnd = rand_0_1();
-    if (5 * rnd < mutation_strength) {
-      // std::cout << "Random node created" << std::endl;
+    case 3: {
       add_random_node();
+      break;
     }
-    rnd = rand_0_1();
-    if (5 * rnd < mutation_strength) {
-      // std::cout << "Random connection removed" << std::endl;
-      remove_random_connection();
+    default: { // do nothing if 0
+      break;
+    }
     }
   }
 
@@ -265,14 +265,9 @@ private:
     m_nb_connections--;
   }
 
-  void change_connection_weight(double mutation_strength) {
-    if (mutation_strength < 0 or mutation_strength > 1) {
-      std::cerr << "The mutation strength should be between 0 and 1."
-                << std::endl;
-      return;
-    }
+  void change_connection_weight() {
     unsigned int rnd_connection = rnd_int_smaller_than(m_nb_connections);
-    m_connections[rnd_connection].mutate(mutation_strength);
+    m_connections[rnd_connection].mutate();
   }
 
   bool sort_connections() {
