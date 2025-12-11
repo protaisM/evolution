@@ -19,72 +19,71 @@
 
 enum Screen_type { FULL, ONLY_MAP, ONLY_LEGEND, EMPTY };
 
-// struct Safe_zone {
-//   double x;
-//   double y;
-//   double radius;
-//
-//   void draw(sf::RenderWindow *window) const {
-//     sf::CircleShape safe(radius);
-//     safe.setPosition(x, y);
-//     safe.setFillColor(sf::Color(0, 255, 0, 100));
-//     safe.setOrigin(radius, radius);
-//     window->draw(safe);
-//   }
-//
-//   bool is_in(std::array<double, 2>) const;
-// };
+struct ExperimentParameters {
+  double time;
+  unsigned int generation;
+  double generation_duration;
+  double dt;
+  unsigned int nb_alive_mice;
+  unsigned int minimal_mice_number;
+};
+
+struct DisplayParameters {
+  unsigned int selected_mouse;
+  unsigned int zoom;
+  Position center_position;
+};
 
 template <typename Mouse, unsigned int MICE_NUMBER,
           unsigned int PREDATORS_NUMBER>
 class Experiment {
 private:
-  std::array<Predator::BasePredator *, PREDATORS_NUMBER> m_predators;
+  std::array<Predator::BasePredator *, PREDATORS_NUMBER> const m_predators;
   std::array<Mouse, MICE_NUMBER> m_mice;
-  unsigned int m_nb_alive_mice;
-  // Safe_zone m_safe_zone;
-
-  double m_time;
-  unsigned int m_generation;
-
-  // constant parameters
-  Map *m_map;
-  Logger *m_log;
+  Map *const m_map;
+  Logger *const m_log;
   char m_title[40];
-  unsigned int m_evolutive_pressure;
-  int m_duration_generation;
-  double m_map_display_size;
-  double m_zoom;
-  double m_dt;
 
-  // for display
-  unsigned int m_mouse_selected = 0;
+  ExperimentParameters m_params;
+  DisplayParameters m_display_parameters;
+
+  // TODO: remove
+  double m_map_display_size;
 
 public:
   Experiment(const char title[40], Map *map,
              std::array<Predator::BasePredator *, PREDATORS_NUMBER> predators,
-             Logger *log, double mouse_radius = 0.3,
-             unsigned int evolutive_pressure = 4, int duration_generation = 200)
-      : m_predators(predators), m_nb_alive_mice(MICE_NUMBER), m_time(0.0),
-        m_generation(0), m_map(map), m_log(log),
-        m_evolutive_pressure(evolutive_pressure),
-        m_duration_generation(duration_generation), m_map_display_size(940),
-        m_zoom(1.), m_dt(0.005) {
+             Logger *log, double mouse_sight_radius = 0.3,
+             unsigned int minimal_mice_number = 100,
+             int generation_duration = 200)
+      : m_predators(predators), m_map(map), m_log(log) {
     strcpy(m_title, title);
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
-      m_mice[i] = Mouse(m_map, mouse_radius);
+      m_mice[i] = Mouse(m_map, mouse_sight_radius);
     }
+    m_params.minimal_mice_number = minimal_mice_number;
+    m_params.generation_duration = generation_duration;
+    m_params.nb_alive_mice = MICE_NUMBER;
+    m_params.dt = 0.005;
+    m_params.generation = 0;
+    m_params.time = 0;
+
+    m_display_parameters.center_position = map->get_center();
+    m_display_parameters.selected_mouse = 0;
+    m_display_parameters.zoom = 1;
+
+    m_map_display_size = 940;
   }
 
   void run_on_background() {
-    m_log->store_begin(m_generation);
+    m_log->store_begin(m_params.generation);
     while (true) {
       do_one_step();
     }
   }
 
   void run_and_display() {
-    m_log->store_begin(m_generation);
+    m_log->store_begin(m_params.generation);
     double space_right =
         sf::VideoMode::getDesktopMode().width - m_map_display_size;
     double space_bottom =
@@ -97,21 +96,22 @@ public:
 
 private:
   void do_one_step() {
-    m_time = m_time + m_dt;
+    m_params.time = m_params.time + m_params.dt;
     std::array<PositionAngle, PREDATORS_NUMBER> predators_states;
     for (unsigned int i = 0; i < PREDATORS_NUMBER; i++) {
       Predator::BasePredator *predator = m_predators[i];
-      predator->advance(m_dt);
+      predator->advance(m_params.dt);
       predators_states[i] = predator->get_state();
     }
     for (Mouse &mouse : m_mice) {
       if (!mouse.is_alive()) {
         continue;
       }
-      bool should_die = !mouse.advance(m_dt, predators_states);
+      bool should_die = !mouse.advance(m_params.dt, predators_states);
       for (Predator::BasePredator *predator : m_predators) {
         if (predator->is_in_death_zone(mouse.get_position(),
-                                       m_time / m_duration_generation)) {
+                                       m_params.time /
+                                           m_params.generation_duration)) {
           should_die = true;
         }
       }
@@ -119,40 +119,40 @@ private:
         // the mouse fell outside of the map (that had no boundaries)
         // or has been eaten by a predator...
         mouse.kill();
-        m_nb_alive_mice--;
+        m_params.nb_alive_mice--;
       }
     }
 
     if (condition_end_of_generation()) {
-      m_log->store_end(m_time / m_duration_generation,
-                       (double)m_nb_alive_mice / (double)MICE_NUMBER);
+      m_log->store_end(m_params.time / m_params.generation_duration,
+                       (double)m_params.nb_alive_mice / (double)MICE_NUMBER);
       reproduction_round();
       //   move_safe_zone();
       for (Predator::BasePredator *predator : m_predators) {
         predator->clear_position();
       }
-      m_generation++;
-      m_time -= m_time;
-      m_log->store_begin(m_generation);
+      m_params.generation++;
+      m_params.time -= m_params.time;
+      m_log->store_begin(m_params.generation);
     }
   }
 
   bool condition_end_of_generation() {
-    return (m_nb_alive_mice < MICE_NUMBER / m_evolutive_pressure + 1) ||
-           m_time >= m_duration_generation;
+    return (m_params.nb_alive_mice < m_params.minimal_mice_number) ||
+           m_params.time >= m_params.generation_duration;
   }
 
   void reproduction_round() {
-    if (m_nb_alive_mice <= 0) {
+    if (m_params.nb_alive_mice <= 0) {
       std::cerr << "No mice to reproduce, everybody gets a second chance!"
                 << std::endl;
       for (Mouse &mouse : m_mice) {
         mouse.resurrect();
       }
-      m_nb_alive_mice = MICE_NUMBER;
+      m_params.nb_alive_mice = MICE_NUMBER;
       return;
     }
-    unsigned int reproduction_rate = MICE_NUMBER / m_nb_alive_mice;
+    unsigned int reproduction_rate = MICE_NUMBER / m_params.nb_alive_mice;
     unsigned int count_alive_mice = 0;
     unsigned int index_new_mouse = 0;
     std::array<Mouse, MICE_NUMBER> new_mice;
@@ -164,22 +164,7 @@ private:
       // each mouse can reproduce a certain number of time
       for (unsigned int baby = 0; baby < reproduction_rate; baby++) {
         index_new_mouse = count_alive_mice * reproduction_rate + baby;
-        if (count_alive_mice >= m_nb_alive_mice) {
-          // std::cerr << "Error in the count of alive mice" << std::endl;
-          // std::cout << "count_alive_mice = " << count_alive_mice
-          //           << " and m_nb_alive_mice = " << m_nb_alive_mice
-          //           << std::endl;
-          // std::cout << "index_new_mouse = " << index_new_mouse
-          //           << ", reproduction rate = " << reproduction_rate
-          //           << " and baby = " << baby << std::endl;
-          // std::cout << "m_mice is:" << std::endl;
-          // for (unsigned int i = 0; i < MICE_NUMBER; i++) {
-          //   m_mice[i].print();
-          // }
-          // std::cout << "And new mice is:" << std::endl;
-          // for (unsigned int i = 0; i < MICE_NUMBER; i++) {
-          //   new_mice[i].print();
-          // }
+        if (count_alive_mice >= m_params.nb_alive_mice) {
           break;
         }
         if (index_new_mouse >= MICE_NUMBER) {
@@ -192,20 +177,20 @@ private:
       }
       count_alive_mice++;
     }
-    m_nb_alive_mice = index_new_mouse + 1;
+    m_params.nb_alive_mice = index_new_mouse + 1;
     // if reproduction rate was not the evolutive pressure,
     // m_mices is not full: we populate the space between
     // nb_alive_mice and MICE_NUMBER
     unsigned int mouse_to_copy;
-    for (unsigned int index_new_mouse = m_nb_alive_mice;
+    for (unsigned int index_new_mouse = m_params.nb_alive_mice;
          index_new_mouse < MICE_NUMBER; index_new_mouse++) {
-      mouse_to_copy = rnd_int_smaller_than(m_nb_alive_mice);
+      mouse_to_copy = rnd_int_smaller_than(m_params.nb_alive_mice);
       new_mice[index_new_mouse] = new_mice[mouse_to_copy];
       new_mice[index_new_mouse].mutate();
       new_mice[index_new_mouse].randomize_position();
     }
     m_mice = new_mice;
-    m_nb_alive_mice = MICE_NUMBER;
+    m_params.nb_alive_mice = MICE_NUMBER;
   }
 
   void run_on_window(sf::RenderWindow *window) {
@@ -221,7 +206,7 @@ private:
         handle_event(window, evnt, display);
       }
       do_one_step();
-      draw(window, display, space_right, space_bottom, m_dt);
+      draw(window, display, space_right, space_bottom, m_params.dt);
     }
   }
   void handle_event(sf::RenderWindow *window, sf::Event evnt,
@@ -246,13 +231,31 @@ private:
         window->clear();
       }
       if (evnt.key.code == sf::Keyboard::J) {
-        m_dt -= 0.005;
-        if (m_dt < 0) {
-          m_dt = 0;
+        m_params.dt -= 0.005;
+        if (m_params.dt < 0) {
+          m_params.dt = 0;
         }
       }
       if (evnt.key.code == sf::Keyboard::K) {
-        m_dt += 0.005;
+        m_params.dt += 0.005;
+      }
+      if (evnt.key.code == sf::Keyboard::Up) {
+        m_params.generation_duration += 10;
+      }
+      if (evnt.key.code == sf::Keyboard::Down) {
+        m_params.generation_duration -= 10;
+        if (m_params.generation_duration < 10) {
+          m_params.generation_duration = 10;
+        }
+      }
+      if (evnt.key.code == sf::Keyboard::Right) {
+        m_params.minimal_mice_number += 10;
+      }
+      if (evnt.key.code == sf::Keyboard::Left) {
+        m_params.minimal_mice_number -= 10;
+        if (m_params.minimal_mice_number < 10) {
+          m_params.minimal_mice_number = 10;
+        }
       }
       break;
     default:
@@ -267,11 +270,12 @@ private:
     case FULL:
       for (size_t i = 0; i < MICE_NUMBER; i++) {
         if (m_mice[i].is_alive()) {
-          m_mice[i].draw(window, m_zoom * m_map_display_size);
+          m_mice[i].draw(window,
+                         m_display_parameters.zoom * m_map_display_size);
         }
       }
       for (Predator::BasePredator *predator : m_predators) {
-        predator->draw(window, m_zoom * m_map_display_size);
+        predator->draw(window, m_display_parameters.zoom * m_map_display_size);
       }
       m_map->draw(window, m_map_display_size);
       // m_safe_zone.draw(window);
@@ -281,11 +285,12 @@ private:
     case ONLY_MAP:
       for (size_t i = 0; i < MICE_NUMBER; i++) {
         if (m_mice[i].is_alive()) {
-          m_mice[i].draw(window, m_zoom * m_map_display_size);
+          m_mice[i].draw(window,
+                         m_display_parameters.zoom * m_map_display_size);
         }
       }
       for (Predator::BasePredator *predator : m_predators) {
-        predator->draw(window, m_zoom * m_map_display_size);
+        predator->draw(window, m_display_parameters.zoom * m_map_display_size);
       }
       m_map->draw(window, m_map_display_size);
       // m_safe_zone.draw(window);
@@ -311,13 +316,14 @@ private:
     sf::Text legend;
     legend.setFont(font);
     std::string text_legend =
-        " Mice alive: " + std::to_string(m_nb_alive_mice) + " / " +
+        " Mice alive: " + std::to_string(m_params.nb_alive_mice) + " / " +
         std::to_string(MICE_NUMBER) + ", ";
-    text_legend += "in generation " + std::to_string(m_generation) +
-                   " at time " + std::to_string(m_time) + " / " +
-                   std::to_string(m_duration_generation) + "\n";
+    text_legend += "in generation " + std::to_string(m_params.generation) +
+                   " at time " + std::to_string(m_params.time) + " / " +
+                   std::to_string(m_params.generation_duration) + "\n";
     text_legend +=
-        " Evolutive pressure: " + std::to_string(m_evolutive_pressure) + ", ";
+        " Evolutive pressure: " + std::to_string(m_params.minimal_mice_number) +
+        ", ";
     text_legend +=
         "sight radius: " + std::to_string(m_mice[0].get_sight_radius()) + "\n";
     text_legend += " dt = " + std::to_string(dt);
