@@ -13,6 +13,8 @@ protected:
   bool m_has_safe_boundary;
 
 public:
+  virtual ~Map() {}
+
   virtual bool is_in(Position) const = 0;
   virtual Position rnd_position() const = 0;
   virtual Position project_on_map(Position) const = 0;
@@ -78,20 +80,22 @@ public:
 
   virtual void draw(sf::RenderWindow *window,
                     double window_size) const override {
-    sf::Vertex line_bottom[] = {
-        sf::Vertex(sf::Vector2f(0.0f, window_size)),
-        sf::Vertex(sf::Vector2f(window_size, window_size))};
-    sf::Vertex line_right[] = {
-        sf::Vertex(sf::Vector2f(window_size, 0.0f)),
-        sf::Vertex(sf::Vector2f(window_size, window_size))};
-    sf::Vertex line_top[] = {sf::Vertex(sf::Vector2f(1.0f, 1.0f)),
-                             sf::Vertex(sf::Vector2f(1.0f, window_size))};
-    sf::Vertex line_left[] = {sf::Vertex(sf::Vector2f(1.0f, 1.0f)),
-                              sf::Vertex(sf::Vector2f(window_size, 1.0f))};
-    window->draw(line_bottom, 2, sf::Lines);
-    window->draw(line_right, 2, sf::Lines);
-    window->draw(line_top, 2, sf::Lines);
-    window->draw(line_left, 2, sf::Lines);
+    if (m_has_safe_boundary) {
+      sf::Vertex line_bottom[] = {
+          sf::Vertex(sf::Vector2f(0.0f, window_size)),
+          sf::Vertex(sf::Vector2f(window_size, window_size))};
+      sf::Vertex line_right[] = {
+          sf::Vertex(sf::Vector2f(window_size, 0.0f)),
+          sf::Vertex(sf::Vector2f(window_size, window_size))};
+      sf::Vertex line_top[] = {sf::Vertex(sf::Vector2f(1.0f, 1.0f)),
+                               sf::Vertex(sf::Vector2f(1.0f, window_size))};
+      sf::Vertex line_left[] = {sf::Vertex(sf::Vector2f(1.0f, 1.0f)),
+                                sf::Vertex(sf::Vector2f(window_size, 1.0f))};
+      window->draw(line_bottom, 2, sf::Lines);
+      window->draw(line_right, 2, sf::Lines);
+      window->draw(line_top, 2, sf::Lines);
+      window->draw(line_left, 2, sf::Lines);
+    }
   };
 };
 

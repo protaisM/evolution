@@ -6,6 +6,7 @@
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/System/Vector2.hpp>
 #include <cmath>
 
 namespace Predator {
@@ -28,6 +29,8 @@ public:
 
   BasePredator() {}
 
+  virtual ~BasePredator() {}
+
   void clear_position() {
     if (m_randomize_position)
       m_state.position = m_map->rnd_position();
@@ -39,7 +42,8 @@ public:
 public:
   virtual bool is_in_death_zone(Position pos, double time) = 0;
   virtual void advance(double dt) = 0;
-  virtual void draw(sf::RenderWindow *window, double window_size) const = 0;
+  virtual void draw(sf::RenderWindow *window, sf::Vector2f offset,
+                    double window_size) const = 0;
 };
 
 class CircleShaped : public BasePredator {
@@ -63,10 +67,13 @@ public:
     return false;
   }
 
-  void draw(sf::RenderWindow *window, double window_size) const override {
+  void draw(sf::RenderWindow *window, sf::Vector2f offset,
+            double window_size) const override {
+    sf::Vector2f position({(float)m_state.position.x * (float)window_size,
+                           (float)m_state.position.y * (float)window_size});
+    position += offset;
     sf::CircleShape death(m_radius * window_size);
-    death.setPosition(m_state.position.x * window_size,
-                      m_state.position.y * window_size);
+    death.setPosition(position);
     death.setFillColor(sf::Color::Red);
     death.setOrigin(m_radius * window_size, m_radius * window_size);
     window->draw(death);
@@ -169,12 +176,15 @@ public:
     return false;
   }
 
-  void draw(sf::RenderWindow *window, double window_size) const override {
+  void draw(sf::RenderWindow *window, sf::Vector2f offset,
+            double window_size) const override {
+    sf::Vector2f position({(float)m_state.position.x * (float)window_size,
+                           (float)m_state.position.y * (float)window_size});
+    position += offset;
     sf::RectangleShape death;
     death.setSize({static_cast<float>(m_x_length * window_size),
                    static_cast<float>(m_y_length * window_size)});
-    death.setPosition(m_state.position.x * window_size,
-                      m_state.position.y * window_size);
+    death.setPosition(position);
     death.setFillColor(sf::Color{255, 0, 0, 127});
     death.setOrigin(m_x_length * window_size / 2, m_y_length * window_size / 2);
     window->draw(death);

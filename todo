@@ -4,3 +4,5 @@
 - being able to modify everything during simulation
 - color mutation (+ visible)
 - add nodes number and connections number to log
+- relu for brain
+- brain nodes and connection separate
