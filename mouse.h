@@ -8,10 +8,12 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdlib>
 #include <string>
+#include <vector>
 
 struct Color {
   int r;
@@ -85,8 +87,9 @@ protected:
     return true;
   }
 
-  virtual void update_angle_and_velocity(
-      std::array<PositionAngle, NB_PREDATORS> predators_states, double dt) = 0;
+  virtual void
+  update_angle_and_velocity(std::vector<PositionAngle> predators_states,
+                            double dt) = 0;
 
   virtual void print() { std::cout << informations() << std::endl; }
 
@@ -95,8 +98,7 @@ protected:
   }
 
 public:
-  bool advance(double dt,
-               std::array<PositionAngle, NB_PREDATORS> predators_states) {
+  bool advance(double dt, std::vector<PositionAngle> predators_states) {
     update_angle_and_velocity(predators_states, dt);
     return update_position(dt);
   }
@@ -192,7 +194,7 @@ public:
                                     std::min(m_color.b + 30, 255)));
     left_ear.rotate((M_PI / 2 + m_state.angle) / (2 * M_PI) * 360);
     left_ear.setOutlineThickness(1.0f);
-    left_ear.setOutlineColor(sf::Color::Black);
+    left_ear.setOutlineColor(sf::Color(50, 50, 50));
 
     sf::CircleShape right_ear;
     right_ear.setRadius(5);
@@ -203,7 +205,7 @@ public:
                                      std::min(m_color.b + 30, 255)));
     right_ear.rotate((M_PI / 2 + m_state.angle) / (2 * M_PI) * 360);
     right_ear.setOutlineThickness(1.0f);
-    right_ear.setOutlineColor(sf::Color::Black);
+    right_ear.setOutlineColor(sf::Color(50, 50, 50));
 
     window->draw(to_display);
     window->draw(left_ear);
@@ -231,7 +233,7 @@ private:
   unsigned int static constexpr m_nb_input = 3 + 3 * NB_PREDATORS;
 
 public:
-  SimpleMouse(Map *map, double sight_radius = 0.5)
+  SimpleMouse(Map *map, double sight_radius = 2.5)
       : BaseMouse<m_nb_input, 2, 30, 100, NB_PREDATORS>(map, sight_radius) {}
 
   SimpleMouse() : BaseMouse<m_nb_input, 2, 30, 100, NB_PREDATORS>() {}
@@ -254,9 +256,15 @@ public:
   }
 
 protected:
-  virtual void update_angle_and_velocity(
-      std::array<PositionAngle, NB_PREDATORS> predators_states,
-      double dt) override {
+  virtual void
+  update_angle_and_velocity(std::vector<PositionAngle> predators_states,
+                            double dt) override {
+    std::sort(
+        predators_states.begin(), predators_states.end(),
+        [this](const PositionAngle &lhs, const PositionAngle &rhs) {
+          return this->m_map->distance(this->m_state.position, lhs.position) <
+                 this->m_map->distance(this->m_state.position, rhs.position);
+        });
 
     std::array<double, m_nb_input> input_to_brain;
     std::array<double, 2> output_from_brain;

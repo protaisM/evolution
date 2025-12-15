@@ -20,6 +20,9 @@
 enum Screen_type { FULL, ONLY_MAP, ONLY_LEGEND, EMPTY };
 
 struct ExperimentParameters {
+  // this struct holds all the main parameters of an experiment
+  // they are initialized in the beginning but they may change
+  // during the simulation
   double time;
   unsigned int generation;
   double generation_duration;
@@ -29,34 +32,34 @@ struct ExperimentParameters {
 };
 
 struct DisplayParameters {
+  // this struct holds all parameters related to the
+  // display of the experiment
   unsigned int selected_mouse;
   unsigned int zoom;
   Position center_position;
+  bool follow_mouse;
 };
 
-template <typename Mouse, unsigned int MICE_NUMBER,
-          unsigned int PREDATORS_NUMBER>
-class Experiment {
+template <typename Mouse, unsigned int MICE_NUMBER> class Experiment {
 private:
-  std::array<Predator::BasePredator *, PREDATORS_NUMBER> const m_predators;
+  std::vector<Predator::BasePredator *> m_predators;
   std::array<Mouse, MICE_NUMBER> m_mice;
   Map *const m_map;
   Logger *const m_log;
-  char m_title[40];
 
   ExperimentParameters m_params;
   DisplayParameters m_display_parameters;
 
   // TODO: remove
   double m_map_display_size;
+  char m_title[40];
 
 public:
-  Experiment(const char title[40], Map *map,
-             std::array<Predator::BasePredator *, PREDATORS_NUMBER> predators,
-             Logger *log, double mouse_sight_radius = 0.3,
+  Experiment(char title[40], Map *map, Logger *log,
+             double mouse_sight_radius = 0.3,
              unsigned int minimal_mice_number = 100,
              int generation_duration = 200)
-      : m_predators(predators), m_map(map), m_log(log) {
+      : m_map(map), m_log(log) {
     strcpy(m_title, title);
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
       m_mice[i] = Mouse(m_map, mouse_sight_radius);
@@ -71,8 +74,13 @@ public:
     m_display_parameters.center_position = map->get_center();
     m_display_parameters.selected_mouse = 0;
     m_display_parameters.zoom = 1;
+    m_display_parameters.follow_mouse = false;
 
     m_map_display_size = 940;
+  }
+
+  void add_predator(Predator::BasePredator *predator) {
+    m_predators.push_back(predator);
   }
 
   void run_on_background() {
@@ -97,11 +105,10 @@ public:
 private:
   void do_one_step() {
     m_params.time = m_params.time + m_params.dt;
-    std::array<PositionAngle, PREDATORS_NUMBER> predators_states;
-    for (unsigned int i = 0; i < PREDATORS_NUMBER; i++) {
-      Predator::BasePredator *predator = m_predators[i];
+    std::vector<PositionAngle> predators_states;
+    for (Predator::BasePredator *predator : m_predators) {
       predator->advance(m_params.dt);
-      predators_states[i] = predator->get_state();
+      predators_states.push_back(predator->get_state());
     }
     for (Mouse &mouse : m_mice) {
       if (!mouse.is_alive()) {
@@ -127,7 +134,6 @@ private:
       m_log->store_end(m_params.time / m_params.generation_duration,
                        (double)m_params.nb_alive_mice / (double)MICE_NUMBER);
       reproduction_round();
-      //   move_safe_zone();
       for (Predator::BasePredator *predator : m_predators) {
         predator->clear_position();
       }
@@ -144,7 +150,7 @@ private:
 
   void reproduction_round() {
     if (m_params.nb_alive_mice <= 0) {
-      std::cerr << "No mice to reproduce, everybody gets a second chance!"
+      std::cout << "No mice to reproduce, everybody gets a second chance!"
                 << std::endl;
       for (Mouse &mouse : m_mice) {
         mouse.resurrect();
@@ -165,6 +171,7 @@ private:
       for (unsigned int baby = 0; baby < reproduction_rate; baby++) {
         index_new_mouse = count_alive_mice * reproduction_rate + baby;
         if (count_alive_mice >= m_params.nb_alive_mice) {
+          std::cout << "You're still bad at counting" << std::endl;
           break;
         }
         if (index_new_mouse >= MICE_NUMBER) {
@@ -206,7 +213,8 @@ private:
         handle_event(window, evnt, display);
       }
       do_one_step();
-      draw(window, display, space_right, space_bottom, m_params.dt);
+      window->clear(sf::Color({50, 50, 50}));
+      draw(window, display, space_right, space_bottom);
     }
   }
   void handle_event(sf::RenderWindow *window, sf::Event evnt,
@@ -264,8 +272,7 @@ private:
   }
 
   void draw(sf::RenderWindow *window, Screen_type display, int space_right,
-            int space_bottom, double dt) const {
-    window->clear(sf::Color({50, 50, 50}));
+            int space_bottom) const {
     switch (display) {
     case FULL:
       for (size_t i = 0; i < MICE_NUMBER; i++) {
@@ -278,8 +285,7 @@ private:
         predator->draw(window, m_display_parameters.zoom * m_map_display_size);
       }
       m_map->draw(window, m_map_display_size);
-      // m_safe_zone.draw(window);
-      draw_legend(window, space_right, space_bottom, dt);
+      draw_legend(window, space_right, space_bottom);
       window->display();
       break;
     case ONLY_MAP:
@@ -293,11 +299,10 @@ private:
         predator->draw(window, m_display_parameters.zoom * m_map_display_size);
       }
       m_map->draw(window, m_map_display_size);
-      // m_safe_zone.draw(window);
       window->display();
       break;
     case ONLY_LEGEND:
-      draw_legend(window, space_right, space_bottom, dt);
+      draw_legend(window, space_right, space_bottom);
       window->display();
       break;
     case EMPTY:
@@ -307,29 +312,25 @@ private:
     }
   }
 
-  void draw_legend(sf::RenderWindow *window, int space_right, int space_bottom,
-                   double dt) const {
+  void draw_legend(sf::RenderWindow *window, int space_right,
+                   int space_bottom) const {
     sf::Font font;
     font.loadFromFile("UbuntuMono-R.ttf");
 
     // legend at the bottom
     sf::Text legend;
     legend.setFont(font);
-    std::string text_legend =
-        " Mice alive: " + std::to_string(m_params.nb_alive_mice) + " / " +
-        std::to_string(MICE_NUMBER) + ", ";
-    text_legend += "in generation " + std::to_string(m_params.generation) +
-                   " at time " + std::to_string(m_params.time) + " / " +
+    std::string text_legend = " Gen " + std::to_string(m_params.generation) +
+                              " Mice " +
+                              std::to_string(m_params.nb_alive_mice) + " (" +
+                              std::to_string(m_params.minimal_mice_number) +
+                              ") / " + std::to_string(MICE_NUMBER) + "\n";
+    text_legend += " Time " + std::to_string(m_params.time) + " (+" +
+                   std::to_string(m_params.dt) + ") / " +
                    std::to_string(m_params.generation_duration) + "\n";
-    text_legend +=
-        " Evolutive pressure: " + std::to_string(m_params.minimal_mice_number) +
-        ", ";
-    text_legend +=
-        "sight radius: " + std::to_string(m_mice[0].get_sight_radius()) + "\n";
-    text_legend += " dt = " + std::to_string(dt);
     legend.setString(text_legend);
     legend.setFillColor(sf::Color::White);
-    legend.setPosition(0.0f, m_map_display_size);
+    legend.setPosition(0.0f, 0.0f);
     legend.setCharacterSize(20);
 
     // the black boundary
