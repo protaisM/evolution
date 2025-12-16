@@ -50,12 +50,11 @@ private:
   DisplayParameters m_display_parameters;
 
 public:
-  Experiment(Map *map, Logger *log, double mouse_sight_radius = 0.5,
-             unsigned int minimal_mice_number = 500,
+  Experiment(Map *map, Logger *log, unsigned int minimal_mice_number = 500,
              int generation_duration = 200)
       : m_map(map), m_log(log) {
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
-      m_mice[i] = Mouse(m_map, mouse_sight_radius);
+      m_mice[i] = Mouse(m_map);
     }
     m_params.minimal_mice_number = minimal_mice_number;
     m_params.generation_duration = generation_duration;
@@ -77,9 +76,11 @@ public:
   }
 
   void draw(sf::RenderWindow *window, sf::Vector2f offset,
-            double map_size) const {
-    float space_right = sf::VideoMode::getDesktopMode().width - map_size;
-    float space_bottom = sf::VideoMode::getDesktopMode().height - map_size;
+            float map_size) const {
+    sf::RectangleShape background(sf::Vector2f({map_size, map_size}));
+    background.setPosition(offset);
+    background.setFillColor(sf::Color({50, 50, 50}));
+    window->draw(background);
     for (Mouse mouse : m_mice) {
       if (mouse.is_alive()) {
         mouse.draw(window, offset, m_display_parameters.zoom * map_size);
@@ -88,24 +89,7 @@ public:
     for (Predator::BasePredator *predator : m_predators) {
       predator->draw(window, offset, m_display_parameters.zoom * map_size);
     }
-    m_map->draw(window, map_size);
     draw_legend(window, offset);
-
-    // the black boundary
-    sf::RectangleShape boundary_right(
-        sf::Vector2f(space_right, map_size + space_bottom));
-    boundary_right.setPosition(map_size, 0.0f);
-    boundary_right.setFillColor(sf::Color::Black);
-
-    sf::RectangleShape boundary_bottom(sf::Vector2f(map_size, space_bottom));
-    boundary_bottom.setPosition(0.0f, map_size);
-    boundary_bottom.setFillColor(sf::Color::Black);
-
-    window->draw(boundary_right);
-    window->draw(boundary_bottom);
-    m_log->plot(window, offset + sf::Vector2f({(float)map_size, 0.0f}),
-                {space_right, (float)sf::VideoMode::getDesktopMode().height});
-    window->display();
   }
 
   void do_one_step() {

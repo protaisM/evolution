@@ -12,7 +12,7 @@
 
 enum Screen_type { FULL, ONLY_MAP, ONLY_LEGEND, EMPTY };
 
-template <typename Mouse, unsigned int MICE_NUMBER> class Simulation {
+template <typename Mouse, unsigned int MICE_NUMBER> class Application {
 private:
   Experiment<Mouse, MICE_NUMBER> *m_experiment;
   Logger *m_logger;
@@ -21,15 +21,15 @@ private:
   std::vector<Predator::BasePredator *> m_predators;
 
   char m_title[40];
-  double m_map_display_size;
+  float m_map_display_size;
 
   // for the display
   Screen_type m_display = FULL;
 
 public:
-  Simulation(char title[40]) {
+  Application(char title[40]) {
     strcpy(m_title, title);
-    m_map = new Square(1, true);
+    m_map = new Circle(1, false);
     m_map_display_size = 940;
     m_logger = new Logger(title);
     m_experiment = new Experiment<Mouse, MICE_NUMBER>(m_map, m_logger);
@@ -38,24 +38,23 @@ public:
         new Predator::CircleShaped_Bounce(m_map, 0.1, 0.2);
     m_experiment->add_predator(predator);
     m_predators.push_back(predator);
+    m_window = new sf::RenderWindow(
+        sf::VideoMode(sf::VideoMode::getDesktopMode().width,
+                      sf::VideoMode::getDesktopMode().height),
+        std::string(m_title));
   }
 
-  ~Simulation() {
+  ~Application() {
     for (auto p : m_predators) {
       delete p;
     }
     delete m_logger;
-    // delete m_window;
+    delete m_window;
     delete m_map;
     delete m_experiment;
   }
 
   void run() {
-    sf::RenderWindow window(
-        sf::VideoMode(sf::VideoMode::getDesktopMode().width,
-                      sf::VideoMode::getDesktopMode().height),
-        std::string(m_title));
-    m_window = &window;
     while (m_window->isOpen()) {
       sf::Event evnt;
       while (m_window->pollEvent(evnt)) {
@@ -64,9 +63,7 @@ public:
       m_experiment->do_one_step();
       switch (m_display) {
       case FULL:
-        m_window->clear(sf::Color({50, 50, 50}));
-        draw_experiment();
-        m_window->display();
+        full_dispay();
         break;
       default:
         break;
@@ -75,8 +72,15 @@ public:
   }
 
 private:
-  void draw_experiment() {
-    m_experiment->draw(m_window, {0.0f, 0.0f}, m_map_display_size);
+  void full_dispay() {
+    sf::Vector2f offset({15.0f, 5.0f});
+    m_window->clear(sf::Color::Black);
+    m_experiment->draw(m_window, offset, m_map_display_size);
+    m_map->draw(m_window, offset, m_map_display_size);
+    m_logger->plot(m_window, offset + sf::Vector2f({m_map_display_size, 0.0f}),
+                   {sf::VideoMode::getDesktopMode().width - m_map_display_size,
+                    (float)sf::VideoMode::getDesktopMode().height});
+    m_window->display();
   }
 
   void handle_event(sf::RenderWindow *window, sf::Event evnt) {

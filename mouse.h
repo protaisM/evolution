@@ -44,12 +44,13 @@ protected:
   Color m_color;
 
 public:
-  BaseMouse(Map *map, double sight_radius)
+  BaseMouse(Map *map)
       : m_brain(), m_map(map), m_state({map->rnd_position(), rand_angle()}),
-        m_velocity(0), m_sight_radius(sight_radius), m_is_alive(true) {
+        m_velocity(0), m_is_alive(true) {
     m_color.r = std::rand() % 255;
     m_color.g = std::rand() % 255;
     m_color.b = std::rand() % 255;
+    m_sight_radius = rand_0_1();
   }
 
   BaseMouse() : m_is_alive(false) {}
@@ -234,8 +235,8 @@ private:
   unsigned int static constexpr m_nb_input = 3 + 3 * NB_PREDATORS;
 
 public:
-  SimpleMouse(Map *map, double sight_radius = 2.5)
-      : BaseMouse<m_nb_input, 2, 30, 100, NB_PREDATORS>(map, sight_radius) {}
+  SimpleMouse(Map *map)
+      : BaseMouse<m_nb_input, 2, 30, 100, NB_PREDATORS>(map) {}
 
   SimpleMouse() : BaseMouse<m_nb_input, 2, 30, 100, NB_PREDATORS>() {}
 

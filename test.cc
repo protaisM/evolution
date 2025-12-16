@@ -33,7 +33,7 @@ int main() {
   // my_experiment.run_and_display();
   // my_log.write_to_file();
 
-  Simulation<SimpleMouse<1>, 1000> simu("Test simu");
+  Application<SimpleMouse<1>, 1000> simu("Test simu");
   simu.run();
 
   return 0;

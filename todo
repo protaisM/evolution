@@ -1,4 +1,3 @@
-- mutation strength/proba -> proba law
 - distance on torus
 - display on torus
 - being able to modify everything during simulation
@@ -6,3 +5,8 @@
 - add nodes number and connections number to log
 - relu for brain
 - brain nodes and connection separate
+- legend overlay
+- two numbers for predator -> start and stop of killing
+- fitness function for mice, selection via this
+- display of frames
+- dear Imgui

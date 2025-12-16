@@ -3,7 +3,10 @@
 // #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Color.hpp>
+#include <SFML/Graphics/PrimitiveType.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/System/Vector2.hpp>
 #include <cmath>
 
 #include "position.h"
@@ -20,10 +23,45 @@ public:
   virtual Position project_on_map(Position) const = 0;
   virtual double distance(Position, Position) const = 0;
   virtual Position get_center() const = 0;
-  virtual void draw(sf::RenderWindow *window, double window_size) const = 0;
+  virtual void draw(sf::RenderWindow *window, sf::Vector2f offset,
+                    float map_size) const = 0;
   virtual double get_radius() const = 0;
 
   bool has_boundary() { return m_has_safe_boundary; }
+
+protected:
+  void draw_boundaries(sf::RenderWindow *window, sf::Vector2f offset,
+                       float map_size) const {
+
+    float space_right =
+        sf::VideoMode::getDesktopMode().width - map_size - offset.x;
+    sf::RectangleShape boundary_right(
+        sf::Vector2f(space_right, sf::VideoMode::getDesktopMode().height));
+    boundary_right.setPosition(map_size + offset.x, 0.0f);
+    boundary_right.setFillColor(sf::Color::Black);
+
+    float space_left = offset.x;
+    sf::RectangleShape boundary_left(
+        sf::Vector2f(space_left, sf::VideoMode::getDesktopMode().height));
+    boundary_left.setPosition(0.0f, 0.0f);
+    boundary_left.setFillColor(sf::Color::Black);
+
+    float space_bottom =
+        sf::VideoMode::getDesktopMode().height - map_size - offset.y;
+    sf::RectangleShape boundary_bottom(sf::Vector2f(map_size, space_bottom));
+    boundary_bottom.setPosition(offset.x, map_size + offset.y);
+    boundary_bottom.setFillColor(sf::Color::Black);
+
+    float space_top = offset.y;
+    sf::RectangleShape boundary_top(sf::Vector2f(map_size, space_top));
+    boundary_top.setPosition(offset.x, 0.0f);
+    boundary_top.setFillColor(sf::Color::Black);
+
+    window->draw(boundary_right);
+    window->draw(boundary_left);
+    window->draw(boundary_bottom);
+    window->draw(boundary_top);
+  }
 };
 
 class Square : public Map {
@@ -78,25 +116,21 @@ public:
     return norm(pos1 - pos2);
   }
 
-  virtual void draw(sf::RenderWindow *window,
-                    double window_size) const override {
+  virtual void draw(sf::RenderWindow *window, sf::Vector2f offset,
+                    float map_size) const override {
+    draw_boundaries(window, offset, map_size);
     if (m_has_safe_boundary) {
-      sf::Vertex line_bottom[] = {
-          sf::Vertex(sf::Vector2f(0.0f, window_size)),
-          sf::Vertex(sf::Vector2f(window_size, window_size))};
-      sf::Vertex line_right[] = {
-          sf::Vertex(sf::Vector2f(window_size, 0.0f)),
-          sf::Vertex(sf::Vector2f(window_size, window_size))};
-      sf::Vertex line_top[] = {sf::Vertex(sf::Vector2f(1.0f, 1.0f)),
-                               sf::Vertex(sf::Vector2f(1.0f, window_size))};
-      sf::Vertex line_left[] = {sf::Vertex(sf::Vector2f(1.0f, 1.0f)),
-                                sf::Vertex(sf::Vector2f(window_size, 1.0f))};
-      window->draw(line_bottom, 2, sf::Lines);
-      window->draw(line_right, 2, sf::Lines);
-      window->draw(line_top, 2, sf::Lines);
-      window->draw(line_left, 2, sf::Lines);
+      sf::Color outline_color = sf::Color::White;
+      sf::Vertex lines[] = {
+          sf::Vertex(offset, outline_color),
+          sf::Vertex(offset + sf::Vector2f({map_size, 0.0f}), outline_color),
+          sf::Vertex(offset + sf::Vector2f({map_size, map_size}),
+                     outline_color),
+          sf::Vertex(offset + sf::Vector2f({0.0f, map_size}), outline_color),
+          sf::Vertex(offset, outline_color)};
+      window->draw(lines, 5, sf::LinesStrip);
     }
-  };
+  }
 };
 
 class Circle : public Map {
@@ -140,28 +174,31 @@ public:
     return norm(pos1 - pos2);
   }
 
-  virtual void draw(sf::RenderWindow *window,
-                    double window_size) const override {
-    sf::CircleShape outside(window_size * m_diameter / 2);
-    outside.setPosition(window_size * get_center().x,
-                        window_size * get_center().y);
+  virtual void draw(sf::RenderWindow *window, sf::Vector2f offset,
+                    float map_size) const override {
+    draw_boundaries(window, offset, map_size);
+    sf::CircleShape outside(map_size * m_diameter / 2);
+    sf::Vector2f real_center =
+        offset + sf::Vector2f({map_size * (float)get_center().x,
+                               map_size * (float)get_center().y});
+    outside.setPosition(real_center);
     outside.setOutlineColor(sf::Color::Black);
     outside.setFillColor(sf::Color::Transparent);
-    outside.setOutlineThickness(1000.f);
+    outside.setOutlineThickness(2000.f);
     outside.setPointCount(200);
-    outside.setOrigin(window_size * get_center().x,
-                      window_size * get_center().y);
+    outside.setOrigin(map_size * get_center().x,
+                      map_size * (float)get_center().y);
     window->draw(outside);
-    // sf::CircleShape outline(window_size * m_diameter / 2);
-    // outline.setPosition(window_size * get_center().x,
-    //                     window_size * get_center().y);
-    // outline.setOutlineColor(sf::Color::White);
-    // outline.setFillColor(sf::Color::Transparent);
-    // outline.setOutlineThickness(2.f);
-    // outline.setPointCount(200);
-    // outline.setOrigin(window_size * get_center().x,
-    //                   window_size * get_center().y);
-    // window->draw(outline);
+    if (m_has_safe_boundary) {
+      sf::CircleShape outline(map_size * m_diameter / 2);
+      outline.setPosition(real_center);
+      outline.setOutlineColor(sf::Color::White);
+      outline.setFillColor(sf::Color::Transparent);
+      outline.setOutlineThickness(2.f);
+      outline.setPointCount(400);
+      outline.setOrigin(map_size * get_center().x, map_size * get_center().y);
+      window->draw(outline);
+    }
   }
 };
 
@@ -205,21 +242,16 @@ public:
     return norm(pos1 - pos2);
   }
 
-  virtual void draw(sf::RenderWindow *window,
-                    double window_size) const override {
-    sf::Vertex line_bottom[] = {
-        sf::Vertex(sf::Vector2f(0.0f, window_size)),
-        sf::Vertex(sf::Vector2f(window_size, window_size))};
-    sf::Vertex line_right[] = {
-        sf::Vertex(sf::Vector2f(window_size, 0.0f)),
-        sf::Vertex(sf::Vector2f(window_size, window_size))};
-    sf::Vertex line_top[] = {sf::Vertex(sf::Vector2f(1.0f, 1.0f)),
-                             sf::Vertex(sf::Vector2f(1.0f, window_size))};
-    sf::Vertex line_left[] = {sf::Vertex(sf::Vector2f(1.0f, 1.0f)),
-                              sf::Vertex(sf::Vector2f(window_size, 1.0f))};
-    window->draw(line_bottom, 2, sf::Lines);
-    window->draw(line_right, 2, sf::Lines);
-    window->draw(line_top, 2, sf::Lines);
-    window->draw(line_left, 2, sf::Lines);
-  };
+  virtual void draw(sf::RenderWindow *window, sf::Vector2f offset,
+                    float map_size) const override {
+    sf::Color outline_color = sf::Color::White;
+    sf::Vertex lines[] = {
+        sf::Vertex(offset, outline_color),
+        sf::Vertex(offset + sf::Vector2f({map_size, 0.0f}), outline_color),
+        sf::Vertex(offset + sf::Vector2f({map_size, map_size}), outline_color),
+        sf::Vertex(offset + sf::Vector2f({0.0f, map_size}), outline_color),
+        sf::Vertex(offset, outline_color)};
+    window->draw(lines, 5, sf::Lines);
+    draw_boundaries(window, offset, map_size);
+  }
 };
