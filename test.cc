@@ -1,8 +1,6 @@
-#include "experiment.h"
+#include "application.hpp"
 #include "map.h"
 #include "mouse.h"
-#include "predator.h"
-#include "simulation.hpp"
 
 int main() {
   srand(time(NULL));

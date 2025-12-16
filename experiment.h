@@ -69,8 +69,6 @@ public:
     m_display_parameters.follow_mouse = false;
   }
 
-  ~Experiment() {}
-
   void add_predator(Predator::BasePredator *predator) {
     m_predators.push_back(predator);
   }
@@ -89,7 +87,6 @@ public:
     for (Predator::BasePredator *predator : m_predators) {
       predator->draw(window, offset, m_display_parameters.zoom * map_size);
     }
-    draw_legend(window, offset);
   }
 
   void do_one_step() {
@@ -133,13 +130,35 @@ public:
   }
 
   void add_to_dt(double dt) { m_params.dt = std::max(0.005, m_params.dt + dt); }
+
   void add_to_generation_duration(double dg) {
     m_params.generation_duration =
         std::max(10., m_params.generation_duration + dg);
   }
+
   void add_to_minimal_mice_number(double dn) {
     m_params.minimal_mice_number =
         std::max(10., m_params.minimal_mice_number + dn);
+  }
+
+  void draw_legend(sf::RenderWindow *window, sf::Vector2f offset) const {
+    sf::Font font;
+    font.loadFromFile("UbuntuMono-R.ttf");
+    sf::Text legend;
+    legend.setFont(font);
+    std::string text_legend = " Gen " + std::to_string(m_params.generation) +
+                              " Mice " +
+                              std::to_string(m_params.nb_alive_mice) + " (" +
+                              std::to_string(m_params.minimal_mice_number) +
+                              ") / " + std::to_string(MICE_NUMBER) + "\n";
+    text_legend += " Time " + std::to_string(m_params.time) + " (+" +
+                   std::to_string(m_params.dt) + ") / " +
+                   std::to_string(m_params.generation_duration) + "\n";
+    legend.setString(text_legend);
+    legend.setFillColor(sf::Color::White);
+    legend.setPosition(offset);
+    legend.setCharacterSize(20);
+    window->draw(legend);
   }
 
 private:
@@ -198,25 +217,5 @@ private:
     }
     m_mice = new_mice;
     m_params.nb_alive_mice = MICE_NUMBER;
-  }
-
-  void draw_legend(sf::RenderWindow *window, sf::Vector2f offset) const {
-    sf::Font font;
-    font.loadFromFile("UbuntuMono-R.ttf");
-    sf::Text legend;
-    legend.setFont(font);
-    std::string text_legend = " Gen " + std::to_string(m_params.generation) +
-                              " Mice " +
-                              std::to_string(m_params.nb_alive_mice) + " (" +
-                              std::to_string(m_params.minimal_mice_number) +
-                              ") / " + std::to_string(MICE_NUMBER) + "\n";
-    text_legend += " Time " + std::to_string(m_params.time) + " (+" +
-                   std::to_string(m_params.dt) + ") / " +
-                   std::to_string(m_params.generation_duration) + "\n";
-    legend.setString(text_legend);
-    legend.setFillColor(sf::Color::White);
-    legend.setPosition(offset);
-    legend.setCharacterSize(20);
-    window->draw(legend);
   }
 };

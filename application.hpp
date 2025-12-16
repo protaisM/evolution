@@ -73,10 +73,11 @@ public:
 
 private:
   void full_dispay() {
-    sf::Vector2f offset({15.0f, 5.0f});
+    sf::Vector2f offset({5.0f, 5.0f});
     m_window->clear(sf::Color::Black);
     m_experiment->draw(m_window, offset, m_map_display_size);
     m_map->draw(m_window, offset, m_map_display_size);
+    m_experiment->draw_legend(m_window, offset);
     m_logger->plot(m_window, offset + sf::Vector2f({m_map_display_size, 0.0f}),
                    {sf::VideoMode::getDesktopMode().width - m_map_display_size,
                     (float)sf::VideoMode::getDesktopMode().height});

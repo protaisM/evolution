@@ -17,6 +17,7 @@ inline unsigned int rnd_int_smaller_than(unsigned int bound) {
 }
 
 inline double rand_0_1() { return (double)std::rand() / ((double)RAND_MAX); }
+
 inline double rand_normal() {
   double result = -6;
   for (unsigned int i = 0; i < 12; i++) {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "brain.h"
-#include "ellipse.hpp"
+#include "eggshape.hpp"
 #include "map.h"
 #include "position.h"
 
