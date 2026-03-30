@@ -1,6 +1,7 @@
 #pragma once
 
 #include "brain.h"
+#include "color.h"
 #include "eggshape.hpp"
 #include "map.h"
 #include "position.h"
@@ -16,27 +17,29 @@
 #include <string>
 #include <vector>
 
-struct Color {
-  int r;
-  int g;
-  int b;
-};
-
 inline double rand_pos() { return (double)std::rand() / ((double)RAND_MAX); }
 inline double rand_angle() { return 2 * M_PI * rand_pos(); }
 
 template <unsigned int NB_IN_NODES, unsigned int NB_OUT_NODES,
-          unsigned int MAX_BRAIN_SIZE, unsigned int MAX_NB_CONNECTIONS,
-          unsigned int NB_PREDATORS>
+          unsigned int MAX_BRAIN_SIZE, unsigned int MAX_NB_CONNECTIONS>
 class BaseMouse {
+
+protected:
+  //---------------------------------------------------------------//
+  // virtual functions, every subclass should implement these
+  virtual void
+  update_angle_and_velocity(std::vector<PositionAngle> predators_states,
+                            double dt) = 0;
+
+  virtual std::string specific_informations() const = 0;
+  //---------------------------------------------------------------//
+
 protected:
   Brain<NB_IN_NODES, NB_OUT_NODES, MAX_BRAIN_SIZE, MAX_NB_CONNECTIONS> m_brain;
   Map *m_map;
   // note that positions and velocity are normalised to 1
   PositionAngle m_state;
   double m_velocity;
-  // the angle is in [0,2pi]
-  // double m_angle;
 
   // normalised to 1
   double m_sight_radius;
@@ -47,9 +50,6 @@ public:
   BaseMouse(Map *map)
       : m_brain(), m_map(map), m_state({map->rnd_position(), rand_angle()}),
         m_velocity(0), m_is_alive(true) {
-    m_color.r = std::rand() % 255;
-    m_color.g = std::rand() % 255;
-    m_color.b = std::rand() % 255;
     m_sight_radius = rand_0_1();
   }
 
@@ -65,41 +65,26 @@ public:
   double get_sight_radius() const { return m_sight_radius; }
   double get_velocity() const { return m_velocity; }
 
-protected:
-  Position get_next_position(double dt) {
-    Position direction({std::cos(m_state.angle), std::sin(m_state.angle)});
-    return m_state.position + dt * m_velocity * direction;
+  void print() {
+    std::cout << specific_informations() << std::endl;
+    std::cout << informations() << std::endl;
   }
 
-  bool update_position(double dt) {
-    // given the new angle and the new velocity, update the position
-    // return false if the new position is outside the map and the mouse died
-    if (!m_is_alive) {
-      std::cerr << "This bird is not alive" << std::endl;
+  std::string informations() const {
+    std::string result;
+    result += "The mouse is at position (" +
+              std::to_string(this->m_state.position.x) + "," +
+              std::to_string(this->m_state.position.y) + "), with velocity " +
+              std::to_string(this->m_velocity) + " and direction " +
+              std::to_string(this->m_state.angle) + "\n";
+    if (this->m_is_alive) {
+      result += "It is alive!!\n";
     }
-    Position next_pos(get_next_position(dt));
-    if (m_map->is_in(next_pos)) {
-      m_state.position = next_pos;
-    } else if (m_map->has_boundary()) {
-      m_state.position = m_map->project_on_map(next_pos);
-    } else {
-      kill();
-      return false;
-    }
-    return true;
+    result += "Its brain is:\n";
+    result += this->m_brain.informations();
+    return result;
   }
 
-  virtual void
-  update_angle_and_velocity(std::vector<PositionAngle> predators_states,
-                            double dt) = 0;
-
-  virtual void print() { std::cout << informations() << std::endl; }
-
-  virtual std::string informations() const {
-    return "I'm just a base mouse, surely this is a mistake!\n";
-  }
-
-public:
   bool advance(double dt, std::vector<PositionAngle> predators_states) {
     update_angle_and_velocity(predators_states, dt);
     return update_position(dt);
@@ -111,35 +96,34 @@ public:
     if (m_sight_radius < 0) {
       m_sight_radius = 0;
     }
-    unsigned int rnd = rnd_int_smaller_than(6);
-    switch (rnd) {
-    case 0: {
-      m_color.r += 1;
-      break;
-    }
-    case 1: {
-      m_color.r -= 1;
-      break;
-    }
-    case 2: {
-      m_color.g += 1;
-      break;
-    }
-    case 3: {
-      m_color.g -= 1;
-      break;
-    }
-    case 4: {
-      m_color.b += 1;
-      break;
-    }
-    case 5: {
-      m_color.b -= 1;
-      break;
-    }
-    }
+    m_color.mutate();
   }
 
+protected:
+  Position get_next_position(double dt) {
+    Position direction({std::cos(m_state.angle), std::sin(m_state.angle)});
+    return m_state.position + dt * m_velocity * direction;
+  }
+
+  bool update_position(double dt) {
+    // given the new angle and the new velocity, update the position
+    // return false if the new position is outside the map and the mouse died
+    if (!m_is_alive) {
+      std::cerr << "This mouse is not alive" << std::endl;
+    }
+    Position next_pos(get_next_position(dt));
+    if (m_map->is_in(next_pos)) {
+      m_state.position = next_pos;
+    } else if (m_map->has_safe_boundary()) {
+      m_state.position = m_map->project_on_map(next_pos);
+    } else {
+      kill();
+      return false;
+    }
+    return true;
+  }
+
+public:
   void draw(sf::RenderWindow *window, sf::Vector2f offset, double zoom) const {
     sf::Vector2f position({(float)zoom * (float)m_state.position.x,
                            (float)zoom * (float)m_state.position.y});
@@ -220,8 +204,7 @@ public:
 };
 
 template <unsigned int NB_PREDATORS>
-class SimpleMouse
-    : public BaseMouse<3 + 3 * NB_PREDATORS, 2, 30, 100, NB_PREDATORS> {
+class SimpleMouse : public BaseMouse<3 + 3 * NB_PREDATORS, 2, 30, 100> {
   /* A simple mouse has a small brain:
    * it can simply handle the distance to the predator,
    * and the angle at which it sees it. Of course it is also conscious
@@ -235,29 +218,17 @@ private:
   unsigned int static constexpr m_nb_input = 3 + 3 * NB_PREDATORS;
 
 public:
-  SimpleMouse(Map *map)
-      : BaseMouse<m_nb_input, 2, 30, 100, NB_PREDATORS>(map) {}
+  SimpleMouse(Map *map) : BaseMouse<m_nb_input, 2, 30, 100>(map) {}
 
-  SimpleMouse() : BaseMouse<m_nb_input, 2, 30, 100, NB_PREDATORS>() {}
+  SimpleMouse() : BaseMouse<m_nb_input, 2, 30, 100>() {}
 
-  virtual void print() override { std::cout << informations(); }
-
-  virtual std::string informations() const override {
+protected:
+  virtual std::string specific_informations() const override {
     std::string result;
-    result += "A simple mouse at position (" +
-              std::to_string(this->m_state.position.x) + "," +
-              std::to_string(this->m_state.position.y) + "), with velocity " +
-              std::to_string(this->m_velocity) + " and direction " +
-              std::to_string(this->m_state.angle) + "\n";
-    if (this->m_is_alive) {
-      result += "It is alive!!\n";
-    }
-    result += "Its brain is:\n";
-    result += this->m_brain.informations();
+    result += "I am a simple mouse!";
     return result;
   }
 
-protected:
   virtual void
   update_angle_and_velocity(std::vector<PositionAngle> predators_states,
                             double dt) override {
@@ -298,8 +269,7 @@ protected:
 };
 
 template <unsigned int NB_PREDATORS>
-class MemoryMouse
-    : public BaseMouse<3 + 2 * NB_PREDATORS, 3, 30, 150, NB_PREDATORS> {
+class MemoryMouse : public BaseMouse<3 + 2 * NB_PREDATORS, 3, 30, 150> {
   /* A memory mouse is a bit more complex:
    * we add a new input, a memory neuron, which
    * can store information. It therefore adds a input
@@ -307,4 +277,35 @@ class MemoryMouse
    * We increase the number of possible neurons to 30,
    * and the number of connections to 150.
    */
+};
+
+class TimeRobot : public BaseMouse<1, 2, 30, 100> {
+
+private:
+  double m_internal_clock;
+
+public:
+  TimeRobot(Map *map) : BaseMouse<1, 2, 30, 100>(map), m_internal_clock(0.0) {}
+
+  TimeRobot() : BaseMouse<1, 2, 30, 100>(), m_internal_clock(0.0) {}
+
+  virtual std::string specific_informations() const override {
+    std::string result;
+    result += "I am a time robot!\n";
+    result += "My internal clock is " + std::to_string(m_internal_clock);
+    return result;
+  }
+
+protected:
+  virtual void update_angle_and_velocity(std::vector<PositionAngle>,
+                                         double dt) override {
+    // FIXME: we actually don't need the predators
+    m_internal_clock += dt;
+    std::array<double, 2> output_from_brain;
+    output_from_brain = (this->m_brain).activate({m_internal_clock});
+
+    this->m_velocity = std::abs(output_from_brain[0]);
+    this->m_state.angle += dt * M_PI * output_from_brain[1];
+    this->m_state.angle = std::fmod(this->m_state.angle, 2 * M_PI);
+  }
 };

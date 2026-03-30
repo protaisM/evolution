@@ -5,7 +5,7 @@
 int main() {
   srand(time(NULL));
 
-  Circle my_map(1, true);
+  // Circle my_map(1, true);
   // Square my_map(1, true);
   // Torus my_map(1);
 
@@ -31,7 +31,7 @@ int main() {
   // my_experiment.run_and_display();
   // my_log.write_to_file();
 
-  Application<SimpleMouse<1>, 1000> simu("Test simu");
+  Application<TimeRobot, 1000> simu("Test simu");
   simu.run();
 
   return 0;

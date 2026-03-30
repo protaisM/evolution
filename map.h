@@ -18,16 +18,19 @@ protected:
 public:
   virtual ~Map() {}
 
+  //---------------------------------------------------------------//
+  // virtual functions, every subclass should implement these
   virtual bool is_in(Position) const = 0;
   virtual Position rnd_position() const = 0;
   virtual Position project_on_map(Position) const = 0;
   virtual double distance(Position, Position) const = 0;
   virtual Position get_center() const = 0;
+  virtual double get_radius() const = 0;
   virtual void draw(sf::RenderWindow *window, sf::Vector2f offset,
                     float map_size) const = 0;
-  virtual double get_radius() const = 0;
+  //---------------------------------------------------------------//
 
-  bool has_boundary() { return m_has_safe_boundary; }
+  bool has_safe_boundary() { return m_has_safe_boundary; }
 
 protected:
   void draw_boundaries(sf::RenderWindow *window, sf::Vector2f offset,

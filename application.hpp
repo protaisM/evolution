@@ -29,7 +29,7 @@ private:
 public:
   Application(char title[40]) {
     strcpy(m_title, title);
-    m_map = new Circle(1, false);
+    m_map = new Square(1, true);
     m_map_display_size = 940;
     m_logger = new Logger(title);
     m_experiment = new Experiment<Mouse, MICE_NUMBER>(m_map, m_logger);

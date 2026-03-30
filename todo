@@ -9,3 +9,4 @@
 - fitness function for mice, selection via this
 - display of frames
 - dear Imgui
+- remove the need to pass a vector of predators each time we advance a mouse
