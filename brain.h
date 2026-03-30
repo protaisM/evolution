@@ -1,11 +1,11 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <iostream>
 #include <string>
 #include <vector>
-#include <algorithm>
 
 inline unsigned int rnd_int_smaller_than(unsigned int bound) {
   if (bound <= 0) {
@@ -52,14 +52,14 @@ struct Connection {
     idx_node_in = node_in;
     idx_node_out = node_out;
     weight = ((double)rand() / RAND_MAX) * 2 - 1;
-    shift = ((double)rand() / RAND_MAX) * 2 - 1;
+    shift = ((double)rand() / RAND_MAX) - 0.5;
   }
 
   Connection() {}
 
   void mutate() {
     weight += rand_normal();
-    shift += rand_normal();
+    shift += rand_normal() / 4;
   }
 };
 
@@ -139,8 +139,8 @@ public:
       Connection current_connection = m_connections[i];
       m_nodes[current_connection.idx_node_out].add_to_value(
           relu(current_connection.weight *
-                        m_nodes[current_connection.idx_node_in].get_value() +
-                    current_connection.shift));
+                   m_nodes[current_connection.idx_node_in].get_value() +
+               current_connection.shift));
     }
     std::array<double, NB_OUT_NODES> output;
     for (unsigned int i = 0; i < NB_OUT_NODES; i++) {
@@ -176,7 +176,7 @@ public:
   }
 
   void mutate() {
-    unsigned int choice = std::rand() % 5;
+    unsigned int choice = std::rand() % 4;
     switch (choice) {
     case 1: {
       change_connection_weight();
@@ -188,10 +188,6 @@ public:
     }
     case 3: {
       add_random_node();
-      break;
-    }
-    case 4: {
-      remove_random_connection();
       break;
     }
     default: { // do nothing if 0
