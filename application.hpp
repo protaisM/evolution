@@ -35,7 +35,8 @@ public:
     m_experiment = new Experiment<Mouse, MICE_NUMBER>(m_map, m_logger);
 
     Predator::BasePredator *predator =
-        new Predator::CircleShaped_Bounce(m_map, 0.1, 0.2);
+        new Predator::CircleShaped_RunInCircle(m_map, 0.1, 0.2);
+    predator->start_of_the_round();
     m_experiment->add_predator(predator);
     m_predators.push_back(predator);
     m_window = new sf::RenderWindow(

@@ -93,7 +93,7 @@ public:
     m_params.time = m_params.time + m_params.dt;
     std::vector<PositionAngle> predators_states;
     for (Predator::BasePredator *predator : m_predators) {
-      predator->advance(m_params.dt);
+      predator->do_one_step(m_params.dt);
       predators_states.push_back(predator->get_state());
     }
     for (Mouse &mouse : m_mice) {
@@ -102,9 +102,7 @@ public:
       }
       bool should_die = !mouse.advance(m_params.dt, predators_states);
       for (Predator::BasePredator *predator : m_predators) {
-        if (predator->is_in_death_zone(mouse.get_position(),
-                                       m_params.time /
-                                           m_params.generation_duration)) {
+        if (predator->is_in_death_zone(mouse.get_position())) {
           should_die = true;
         }
       }
@@ -122,7 +120,7 @@ public:
                    (double)m_params.nb_alive_mice / (double)MICE_NUMBER);
       reproduction_round();
       for (Predator::BasePredator *predator : m_predators) {
-        predator->clear_position();
+        predator->start_of_the_round();
       }
       m_params.generation++;
       m_params.time -= m_params.time;

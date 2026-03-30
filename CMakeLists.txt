@@ -5,7 +5,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # if(CMAKE_EXPORT_COMPILE_COMMANDS)
 #     set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
 # endif()
-add_compile_options(-Wall -Wpedantic -Wextra)
+add_compile_options(-Wall -Wpedantic -Wextra -g)
 
 # json library
 set(JSON_BuildTests OFF CACHE INTERNAL "")
