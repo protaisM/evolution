@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 inline unsigned int rnd_int_smaller_than(unsigned int bound) {
   if (bound <= 0) {
@@ -24,6 +25,8 @@ inline double rand_normal() {
   result /= 6;
   return result;
 }
+
+inline double relu(double x) { return std::max(x, 0.0); }
 
 class Node {
 private:
@@ -135,7 +138,7 @@ public:
     for (unsigned int i = 0; i < m_nb_connections; i++) {
       Connection current_connection = m_connections[i];
       m_nodes[current_connection.idx_node_out].add_to_value(
-          std::tanh(current_connection.weight *
+          relu(current_connection.weight *
                         m_nodes[current_connection.idx_node_in].get_value() +
                     current_connection.shift));
     }
@@ -173,7 +176,7 @@ public:
   }
 
   void mutate() {
-    unsigned int choice = std::rand() % 4;
+    unsigned int choice = std::rand() % 5;
     switch (choice) {
     case 1: {
       change_connection_weight();
@@ -185,6 +188,10 @@ public:
     }
     case 3: {
       add_random_node();
+      break;
+    }
+    case 4: {
+      remove_random_connection();
       break;
     }
     default: { // do nothing if 0
