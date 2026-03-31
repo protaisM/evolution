@@ -8,77 +8,114 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <cmath>
-#include <iostream>
 
 namespace Predator {
+
 inline double rand_angle() {
   return 2 * M_PI * ((double)rand() / (double)RAND_MAX);
 }
 
-class BasePredator {
-
-  //---------------------------------------------------------------//
+class Shape {
+  // ------------------------------------------------------------------------ //
   // virtual functions, every subclass should implement these
-protected:
-  // where should the predator be at the beginning of a round?
-  virtual void clear_position() = 0;
-  // what does it mean for the predator to advance?
-  virtual void advance(double dt) = 0;
-
 public:
-  // if something is at a given location, should it be killed?
-  virtual bool is_in_death_zone(Position pos) = 0;
-  virtual void draw(sf::RenderWindow *window, sf::Vector2f offset,
+  virtual bool is_in(Position pos_predator, Position pos) const = 0;
+  virtual void draw(sf::RenderWindow *window, Position offset,
                     double window_size) const = 0;
-  //---------------------------------------------------------------//
+  // ------------------------------------------------------------------------ //
+
+  virtual ~Shape() {};
 
 protected:
   Map *m_map;
+
+public:
+  Shape(Map *map) : m_map(map) {}
+};
+
+class Strategy {
+  // ------------------------------------------------------------------------ //
+  // virtual functions, every subclass should implement these
+public:
+  virtual PositionAngle
+  start_of_the_round(PositionAngle previous_state) const = 0;
+  virtual PositionAngle advance(PositionAngle state, double dt) const = 0;
+  virtual bool killing_strategy(double time) const = 0;
+  // ------------------------------------------------------------------------ //
+
+  virtual ~Strategy() {};
+
+protected:
+  Map *m_map;
+
+public:
+  Strategy(Map *map) : m_map(map) {}
+};
+
+class Predator {
+
+private:
   PositionAngle m_state;
   double m_internal_clock;
 
-public:
-  BasePredator(Map *map) : m_map(map) {}
-
-  BasePredator() {}
-
-  virtual ~BasePredator() {}
-
-  void start_of_the_round() {
-    m_internal_clock = 0.0;
-    clear_position();
-  }
-
-  void do_one_step(double dt) {
-    m_internal_clock += dt;
-    advance(dt);
-  }
-
-  Position get_position() { return m_state.position; }
-  PositionAngle get_state() { return m_state; }
-};
-
-class CircleShaped : public BasePredator {
-protected:
-  double m_radius;
+  Shape *m_shape;
+  Strategy *m_strategy;
 
 public:
-  CircleShaped(Map *map, double radius) : BasePredator(map), m_radius(radius) {}
+  Predator(Shape *shape, Strategy *strategy)
+      : m_shape(shape), m_strategy(strategy) {
+    start_of_the_round();
+  }
 
-  CircleShaped() : BasePredator() {}
-
-  bool is_in_death_zone(Position pos) override {
-    if (m_map->distance(pos, m_state.position) < m_radius) {
-      return true;
+  bool is_in_predator(Position pos) const {
+    if (m_shape->is_in(m_state.position, pos)) {
+      return m_strategy->killing_strategy(m_internal_clock);
     }
     return false;
   }
 
   void draw(sf::RenderWindow *window, sf::Vector2f offset,
+            double window_size) const {
+    Position position_offset({offset.x, offset.y});
+    m_shape->draw(window, position_offset + m_state.position * window_size,
+                  window_size);
+  }
+
+  void start_of_the_round() {
+    m_internal_clock = 0.0;
+    m_state = m_strategy->start_of_the_round(m_state);
+  }
+
+  void do_one_step(double dt) {
+    m_internal_clock += dt;
+    m_state = m_strategy->advance(m_state, dt);
+  }
+
+  Position get_position() const { return m_state.position; }
+  PositionAngle get_state() const { return m_state; }
+};
+
+// ##########################################################################
+// ################################# Shapes #################################
+// ##########################################################################
+
+class Circle : public Shape {
+private:
+  double m_radius;
+
+public:
+  Circle(Map *map, double radius = 0.1) : Shape(map), m_radius(radius) {}
+
+  bool is_in(Position pos_predator, Position pos) const override {
+    if (m_map->distance(pos, pos_predator) < m_radius) {
+      return true;
+    }
+    return false;
+  }
+
+  void draw(sf::RenderWindow *window, Position offset,
             double window_size) const override {
-    sf::Vector2f position({(float)m_state.position.x * (float)window_size,
-                           (float)m_state.position.y * (float)window_size});
-    position += offset;
+    sf::Vector2f position({(float)offset.x, (float)offset.y});
     sf::CircleShape death(m_radius * window_size);
     death.setPosition(position);
     death.setFillColor(sf::Color::Red);
@@ -87,148 +124,158 @@ public:
   }
 };
 
-class RandomCirclePredator : public CircleShaped {
+class Rectangle : public Shape {
+private:
+  double m_x_length;
+  double m_y_length;
+
+public:
+  Rectangle(Map *map, double x_length, double y_length)
+      : Shape(map), m_x_length(x_length), m_y_length(y_length) {}
+
+  bool is_in(Position pos_predator, Position pos) const override {
+    if (std::abs(pos_predator.x - pos.x) < m_x_length / 2 and
+        std::abs(pos_predator.y - pos.y) < m_y_length / 2) {
+      return true;
+    }
+    return false;
+  }
+
+  void draw(sf::RenderWindow *window, Position offset,
+            double window_size) const override {
+    sf::Vector2f position({(float)offset.x, (float)offset.y});
+    sf::RectangleShape death;
+    death.setSize({static_cast<float>(m_x_length * window_size),
+                   static_cast<float>(m_y_length * window_size)});
+    death.setPosition(position);
+    death.setFillColor(sf::Color{255, 0, 0, 127});
+    death.setOrigin(m_x_length * window_size / 2, m_y_length * window_size / 2);
+    window->draw(death);
+  }
+};
+
+// ##########################################################################
+// ############################## Strategies ################################
+// ##########################################################################
+
+struct Static : public Strategy {
+private:
+  double m_time_threshold;
+  bool m_randomize_position;
+
+public:
+  Static(Map *map, double time_threshold, bool random_pos = false)
+      : Strategy(map), m_time_threshold(time_threshold),
+        m_randomize_position(random_pos) {}
+
+  PositionAngle
+  start_of_the_round(PositionAngle previous_state) const override {
+    if (m_randomize_position) {
+      return {m_map->rnd_position(), rand_angle()};
+    }
+    return previous_state;
+  }
+
+  bool killing_strategy(double time) const override {
+    return time > m_time_threshold;
+  };
+
+  PositionAngle advance(PositionAngle state, double /*dt*/) const override {
+    return state;
+  }
+};
+
+class RandomWalk : public Strategy {
 
 protected:
   double m_velocity;
   bool m_randomize_position;
+  double m_time_threshold;
 
-protected:
-  void clear_position() override {
-    if (m_randomize_position)
-      m_state.position = m_map->rnd_position();
-    m_state = {m_map->rnd_position(), rand_angle()};
+public:
+  RandomWalk(Map *map, double velocity, bool random_pos, double time_threshold)
+      : Strategy(map), m_velocity(velocity), m_randomize_position(random_pos),
+        m_time_threshold(time_threshold) {}
+
+  PositionAngle
+  start_of_the_round(PositionAngle previous_state) const override {
+    if (m_randomize_position) {
+      return {m_map->rnd_position(), rand_angle()};
+    }
+    return previous_state;
   }
 
-public:
-  RandomCirclePredator(Map *map, double radius, double velocity,
-                       bool random_pos)
-      : CircleShaped(map, radius), m_velocity(velocity),
-        m_randomize_position(random_pos) {}
-
-  RandomCirclePredator() : CircleShaped() {}
+  bool killing_strategy(double time) const override {
+    return time > m_time_threshold;
+  };
 };
 
-class CircleShaped_RunInCircle : public RandomCirclePredator {
+class Run_In_Circle : public RandomWalk {
 public:
-  CircleShaped_RunInCircle(Map *map, double radius, double velocity = 0.4,
-                           bool random_pos = true)
-      : RandomCirclePredator(map, radius, velocity, random_pos) {}
+  Run_In_Circle(Map *map, double velocity = 0.2, bool random_pos = true,
+                double time_threshold = 0.5)
+      : RandomWalk(map, velocity, random_pos, time_threshold) {}
 
-  CircleShaped_RunInCircle() : RandomCirclePredator() {}
-
-protected:
-  void advance(double dt) override {
-    m_state.angle = M_PI / 2 + atan2((m_state.position.y - 0.5),
-                                     (m_state.position.x - 0.5));
-    if (m_map->distance(m_state.position, m_map->get_center()) >=
-        m_map->get_radius() - m_radius) {
-      m_state.angle += dt * rand_angle();
+  PositionAngle advance(PositionAngle state, double dt) const override {
+    PositionAngle result = state;
+    result.angle =
+        M_PI / 2 + atan2((state.position.y - 0.5), (state.position.x - 0.5));
+    if (m_map->distance(state.position, m_map->get_center()) >=
+        m_map->get_radius()) {
+      result.angle += dt * rand_angle();
     } else {
-      m_state.angle += dt * (rand_angle() - M_PI);
+      result.angle += dt * (rand_angle() - M_PI);
     }
-    Position direction({std::cos(m_state.angle), std::sin(m_state.angle)});
-    Position pos = m_state.position + dt * m_velocity * direction;
+    Position direction({std::cos(state.angle), std::sin(state.angle)});
+    Position pos = state.position + dt * m_velocity * direction;
     if (m_map->is_in(pos)) {
-      m_state.position = pos;
+      result.position = pos;
     } else {
-      m_state.position = m_map->project_on_map(pos);
+      result.position = m_map->project_on_map(pos);
     }
+    return result;
   }
 };
 
-struct CircleShaped_Bounce : public RandomCirclePredator {
+struct Bounce : public RandomWalk {
 public:
-  CircleShaped_Bounce(Map *map, double radius, double velocity = 0.4,
-                      bool random_pos = false)
-      : RandomCirclePredator(map, radius, velocity, random_pos) {}
-
-  CircleShaped_Bounce() : RandomCirclePredator() {}
+  Bounce(Map *map, double velocity = 0.2, bool random_pos = false,
+         double time_threshold = 0.5)
+      : RandomWalk(map, velocity, random_pos, time_threshold) {}
 
 protected:
-  void advance(double dt) override {
-    Position direction({std::cos(m_state.angle), std::sin(m_state.angle)});
-    Position pos = m_state.position + dt * m_velocity * direction;
+  PositionAngle advance(PositionAngle state, double dt) const override {
+    PositionAngle result = state;
+    Position direction({std::cos(state.angle), std::sin(state.angle)});
+    Position pos = state.position + dt * m_velocity * direction;
     if (m_map->is_in(pos)) {
-      m_state.position = pos;
+      result.position = pos;
     } else {
-      m_state.position = m_map->project_on_map(pos);
-      m_state.angle = rand_angle();
+      result.position = m_map->project_on_map(pos);
+      result.angle = rand_angle();
     }
+    return result;
   }
 };
 
-struct CircleShaped_Straight : public RandomCirclePredator {
+struct Straigth : public RandomWalk {
 public:
-  CircleShaped_Straight(Map *map, double radius, double velocity = 0.4,
-                        bool random_pos = false)
-      : RandomCirclePredator(map, radius, velocity, random_pos) {}
-
-  CircleShaped_Straight() : RandomCirclePredator() {}
+  Straigth(Map *map, double velocity = 0.2, bool random_pos = false,
+           double time_threshold = 0.5)
+      : RandomWalk(map, velocity, random_pos, time_threshold) {}
 
 protected:
-  void advance(double dt) override {
-    Position direction({std::cos(m_state.angle), std::sin(m_state.angle)});
-    Position pos = m_state.position + dt * m_velocity * direction;
+  PositionAngle advance(PositionAngle state, double dt) const override {
+    PositionAngle result = state;
+    Position direction({std::cos(state.angle), std::sin(state.angle)});
+    Position pos = state.position + dt * m_velocity * direction;
     if (m_map->is_in(pos)) {
-      m_state.position = pos;
+      result.position = pos;
     } else {
-      m_state.position = m_map->project_on_map(pos);
+      result.position = m_map->project_on_map(pos);
     }
-    m_state.angle += dt * (rand_angle() - M_PI);
+    result.angle += dt * (rand_angle() - M_PI);
+    return result;
   }
 };
-
-// class RectangleShaped : public BasePredator {
-// protected:
-//   double m_x_length;
-//   double m_y_length;
-//   double m_time_threshold;
-//
-// public:
-//   RectangleShaped(Map *map, double x_length, double y_length,
-//                   double time_threshold, double velocity, bool random_pos)
-//       : BasePredator(map, velocity, random_pos), m_x_length(x_length),
-//         m_y_length(y_length), m_time_threshold(time_threshold) {}
-//
-//   RectangleShaped() : BasePredator() {}
-//
-//   bool is_in_death_zone(Position pos, double time) override {
-//     if (time <= m_time_threshold) {
-//       return false;
-//     }
-//     if (std::abs(m_state.position.x - pos.x) < m_x_length / 2 and
-//         std::abs(m_state.position.y - pos.y) < m_y_length / 2) {
-//       return true;
-//     }
-//     return false;
-//   }
-//
-//   void draw(sf::RenderWindow *window, sf::Vector2f offset,
-//             double window_size) const override {
-//     sf::Vector2f position({(float)m_state.position.x * (float)window_size,
-//                            (float)m_state.position.y * (float)window_size});
-//     position += offset;
-//     sf::RectangleShape death;
-//     death.setSize({static_cast<float>(m_x_length * window_size),
-//                    static_cast<float>(m_y_length * window_size)});
-//     death.setPosition(position);
-//     death.setFillColor(sf::Color{255, 0, 0, 127});
-//     death.setOrigin(m_x_length * window_size / 2, m_y_length * window_size /
-//     2); window->draw(death);
-//   }
-// };
-//
-// struct RectangleShaped_Static : public RectangleShaped {
-// public:
-//   RectangleShaped_Static(Map *map, double x_length, double y_length,
-//                          double time_threshold, bool random_pos = true)
-//       : RectangleShaped(map, x_length, y_length, time_threshold, 0,
-//                         random_pos) {}
-//
-//   RectangleShaped_Static() : RectangleShaped() {}
-//
-//   void advance(double /*dt*/) override {}
-// };
-
 }; // namespace Predator

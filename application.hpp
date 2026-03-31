@@ -18,7 +18,12 @@ private:
   Logger *m_logger;
   Map *m_map;
   sf::RenderWindow *m_window;
-  std::vector<Predator::BasePredator *> m_predators;
+  // FIXME: should that be in app or in experiment?
+  std::vector<Predator::Predator> m_predators;
+
+  // FIXME: this should store the array of predator strats
+  Predator::Strategy *m_predator_strategy;
+  Predator::Shape *m_predator_shape;
 
   char m_title[40];
   float m_map_display_size;
@@ -34,11 +39,12 @@ public:
     m_logger = new Logger(title);
     m_experiment = new Experiment<Mouse, MICE_NUMBER>(m_map, m_logger);
 
-    Predator::BasePredator *predator =
-        new Predator::CircleShaped_RunInCircle(m_map, 0.1, 0.2);
-    predator->start_of_the_round();
+    m_predator_strategy = new Predator::Straigth(m_map, 0.2, true, 0.5);
+    m_predator_shape = new Predator::Rectangle(m_map, 0.2, 0.3);
+    Predator::Predator predator(m_predator_shape, m_predator_strategy);
     m_experiment->add_predator(predator);
     m_predators.push_back(predator);
+
     m_window = new sf::RenderWindow(
         sf::VideoMode(sf::VideoMode::getDesktopMode().width,
                       sf::VideoMode::getDesktopMode().height),
@@ -46,9 +52,8 @@ public:
   }
 
   ~Application() {
-    for (auto p : m_predators) {
-      delete p;
-    }
+    delete m_predator_strategy;
+    delete m_predator_shape;
     delete m_logger;
     delete m_window;
     delete m_map;

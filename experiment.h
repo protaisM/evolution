@@ -41,7 +41,7 @@ struct DisplayParameters {
 
 template <typename Mouse, unsigned int MICE_NUMBER> class Experiment {
 private:
-  std::vector<Predator::BasePredator *> m_predators;
+  std::vector<Predator::Predator> m_predators;
   std::array<Mouse, MICE_NUMBER> m_mice;
   Map *const m_map;
   Logger *const m_log;
@@ -69,7 +69,7 @@ public:
     m_display_parameters.follow_mouse = false;
   }
 
-  void add_predator(Predator::BasePredator *predator) {
+  void add_predator(Predator::Predator predator) {
     m_predators.push_back(predator);
   }
 
@@ -84,25 +84,25 @@ public:
         mouse.draw(window, offset, m_display_parameters.zoom * map_size);
       }
     }
-    for (Predator::BasePredator *predator : m_predators) {
-      predator->draw(window, offset, m_display_parameters.zoom * map_size);
+    for (Predator::Predator const &predator : m_predators) {
+      predator.draw(window, offset, m_display_parameters.zoom * map_size);
     }
   }
 
   void do_one_step() {
     m_params.time = m_params.time + m_params.dt;
     std::vector<PositionAngle> predators_states;
-    for (Predator::BasePredator *predator : m_predators) {
-      predator->do_one_step(m_params.dt);
-      predators_states.push_back(predator->get_state());
+    for (Predator::Predator &predator : m_predators) {
+      predator.do_one_step(m_params.dt);
+      predators_states.push_back(predator.get_state());
     }
     for (Mouse &mouse : m_mice) {
       if (!mouse.is_alive()) {
         continue;
       }
       bool should_die = !mouse.advance(m_params.dt, predators_states);
-      for (Predator::BasePredator *predator : m_predators) {
-        if (predator->is_in_death_zone(mouse.get_position())) {
+      for (Predator::Predator const &predator : m_predators) {
+        if (predator.is_in_predator(mouse.get_position())) {
           should_die = true;
         }
       }
@@ -119,8 +119,8 @@ public:
                    m_params.time / m_params.generation_duration,
                    (double)m_params.nb_alive_mice / (double)MICE_NUMBER);
       reproduction_round();
-      for (Predator::BasePredator *predator : m_predators) {
-        predator->start_of_the_round();
+      for (Predator::Predator &predator : m_predators) {
+        predator.start_of_the_round();
       }
       m_params.generation++;
       m_params.time -= m_params.time;
