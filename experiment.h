@@ -69,7 +69,8 @@ public:
     }
 
     // predators
-    m_predator_strategy = new Predator::Bounce(m_map, 0.2, true, 0.5);
+    // m_predator_strategy = new Predator::Bounce(m_map, 0.2, true, 0.5);
+    m_predator_strategy = new Predator::FollowPath(m_map);
     m_predator_shape = new Predator::Rectangle(m_map, 0.2, 0.3);
     Predator::Predator predator(m_predator_shape, m_predator_strategy);
     m_predators.push_back(predator);

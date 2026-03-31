@@ -8,6 +8,7 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <cmath>
+#include <cstdlib>
 
 namespace Predator {
 
@@ -39,7 +40,7 @@ class Strategy {
 public:
   virtual PositionAngle
   start_of_the_round(PositionAngle previous_state) const = 0;
-  virtual PositionAngle advance(PositionAngle state, double dt) const = 0;
+  virtual PositionAngle advance(PositionAngle state, double dt) = 0;
   virtual bool killing_strategy(double time) const = 0;
   // ------------------------------------------------------------------------ //
 
@@ -158,7 +159,44 @@ public:
 // ############################## Strategies ################################
 // ##########################################################################
 
-struct Static : public Strategy {
+struct Path {
+  double frequency;
+  Position start_point;
+  Position end_point;
+
+  Position operator()(double t) const {
+    double T = (sin(frequency * t) + 1) / 2;
+    return T * end_point + (1 - T) * start_point;
+  }
+};
+
+class FollowPath : public Strategy {
+  // TODO: for the moment the angle is wrong
+private:
+  Path m_path;
+  double m_internal_clock;
+
+public:
+  FollowPath(Map *map) : Strategy(map), m_internal_clock(0) {
+    m_path.start_point = m_map->rnd_position();
+    m_path.end_point = m_map->rnd_position();
+    m_path.frequency = 5 * (double)std::rand() / RAND_MAX;
+  }
+
+  PositionAngle
+  start_of_the_round(PositionAngle /*previous_state*/) const override {
+    return {m_path.start_point, 0};
+  }
+
+  PositionAngle advance(PositionAngle /*state*/, double dt) override {
+    m_internal_clock += dt;
+    return {m_path(m_internal_clock), 0};
+  }
+
+  bool killing_strategy(double /*time*/) const override { return true; }
+};
+
+class Static : public Strategy {
 private:
   double m_time_threshold;
   bool m_randomize_position;
@@ -180,7 +218,7 @@ public:
     return time > m_time_threshold;
   };
 
-  PositionAngle advance(PositionAngle state, double /*dt*/) const override {
+  PositionAngle advance(PositionAngle state, double /*dt*/) override {
     return state;
   }
 };
@@ -216,7 +254,7 @@ public:
                 double time_threshold = 0.5)
       : RandomWalk(map, velocity, random_pos, time_threshold) {}
 
-  PositionAngle advance(PositionAngle state, double dt) const override {
+  PositionAngle advance(PositionAngle state, double dt) override {
     PositionAngle result = state;
     result.angle =
         M_PI / 2 + atan2((state.position.y - 0.5), (state.position.x - 0.5));
@@ -237,14 +275,14 @@ public:
   }
 };
 
-struct Bounce : public RandomWalk {
+class Bounce : public RandomWalk {
 public:
   Bounce(Map *map, double velocity = 0.2, bool random_pos = false,
          double time_threshold = 0.5)
       : RandomWalk(map, velocity, random_pos, time_threshold) {}
 
 protected:
-  PositionAngle advance(PositionAngle state, double dt) const override {
+  PositionAngle advance(PositionAngle state, double dt) override {
     PositionAngle result = state;
     Position direction({std::cos(state.angle), std::sin(state.angle)});
     Position pos = state.position + dt * m_velocity * direction;
@@ -258,14 +296,14 @@ protected:
   }
 };
 
-struct Straigth : public RandomWalk {
+class Straigth : public RandomWalk {
 public:
   Straigth(Map *map, double velocity = 0.2, bool random_pos = false,
            double time_threshold = 0.5)
       : RandomWalk(map, velocity, random_pos, time_threshold) {}
 
 protected:
-  PositionAngle advance(PositionAngle state, double dt) const override {
+  PositionAngle advance(PositionAngle state, double dt) override {
     PositionAngle result = state;
     Position direction({std::cos(state.angle), std::sin(state.angle)});
     Position pos = state.position + dt * m_velocity * direction;
