@@ -124,20 +124,31 @@ protected:
   }
 
 public:
-  void draw(sf::RenderWindow *window, sf::Vector2f offset, double zoom) const {
+  void draw(sf::RenderWindow *window, sf::Vector2f offset, double zoom,
+            bool selected) const {
+    sf::Color outline = sf::Color::Black;
+    float transparency = 255;
+    if (selected) {
+      transparency = 255;
+      outline = sf::Color::Red;
+    }
+
     sf::Vector2f position({(float)zoom * (float)m_state.position.x,
                            (float)zoom * (float)m_state.position.y});
     position = position + offset;
-    Eggshape to_display;
+    Eggshape body;
     float radius = 7;
-    to_display.setSize(radius);
-    to_display.setElongation(5 + radius * m_velocity / 2);
-    to_display.setPosition(position);
-    to_display.setOrigin(radius, radius);
-    to_display.setFillColor(sf::Color(m_color.r, m_color.g, m_color.b));
-    to_display.rotate((M_PI / 2 + m_state.angle) / (2 * M_PI) * 360);
-    to_display.setOutlineThickness(1.0f);
-    to_display.setOutlineColor(sf::Color::Black);
+    body.setSize(radius);
+    body.setElongation(5 + radius * m_velocity / 2);
+    body.setPosition(position);
+    body.setOrigin(radius, radius);
+    body.setFillColor(sf::Color(m_color.r, m_color.g, m_color.b, transparency));
+    body.rotate((M_PI / 2 + m_state.angle) / (2 * M_PI) * 360);
+    body.setOutlineThickness(1.0f);
+    if (selected) {
+      body.setOutlineThickness(5.0f);
+    }
+    body.setOutlineColor(outline);
 
     sf::CircleShape left_eye;
     left_eye.setRadius(2);
@@ -175,9 +186,9 @@ public:
     left_ear.setRadius(5);
     left_ear.setPosition(position);
     left_ear.setOrigin(7 + radius / 2, radius / 2);
-    left_ear.setFillColor(sf::Color(std::min(m_color.r + 30, 255),
-                                    std::min(m_color.g + 30, 255),
-                                    std::min(m_color.b + 30, 255)));
+    left_ear.setFillColor(
+        sf::Color(std::min(m_color.r + 30, 255), std::min(m_color.g + 30, 255),
+                  std::min(m_color.b + 30, 255), transparency));
     left_ear.rotate((M_PI / 2 + m_state.angle) / (2 * M_PI) * 360);
     left_ear.setOutlineThickness(1.0f);
     left_ear.setOutlineColor(sf::Color(50, 50, 50));
@@ -186,14 +197,14 @@ public:
     right_ear.setRadius(5);
     right_ear.setPosition(position);
     right_ear.setOrigin(5 - 2 - radius / 2, radius / 2);
-    right_ear.setFillColor(sf::Color(std::min(m_color.r + 30, 255),
-                                     std::min(m_color.g + 30, 255),
-                                     std::min(m_color.b + 30, 255)));
+    right_ear.setFillColor(
+        sf::Color(std::min(m_color.r + 30, 255), std::min(m_color.g + 30, 255),
+                  std::min(m_color.b + 30, 255), transparency));
     right_ear.rotate((M_PI / 2 + m_state.angle) / (2 * M_PI) * 360);
     right_ear.setOutlineThickness(1.0f);
     right_ear.setOutlineColor(sf::Color(50, 50, 50));
 
-    window->draw(to_display);
+    window->draw(body);
     window->draw(left_ear);
     window->draw(right_ear);
     window->draw(left_eye);

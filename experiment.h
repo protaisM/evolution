@@ -41,21 +41,39 @@ struct DisplayParameters {
 
 template <typename Mouse, unsigned int MICE_NUMBER> class Experiment {
 private:
-  std::vector<Predator::Predator> m_predators;
-  std::array<Mouse, MICE_NUMBER> m_mice;
-  Map *const m_map;
-  Logger *const m_log;
+  Map *m_map;
+  Logger *const m_logger;
 
+  // coming up: food?
+  std::array<Mouse, MICE_NUMBER> m_mice;
+  std::vector<Predator::Predator> m_predators;
+  // FIXME: this should store the array of predator strats
+  Predator::Strategy *m_predator_strategy;
+  Predator::Shape *m_predator_shape;
+
+  // parameters
   ExperimentParameters m_params;
   DisplayParameters m_display_parameters;
 
 public:
-  Experiment(Map *map, Logger *log, unsigned int minimal_mice_number = 500,
+  Experiment(Logger *log, unsigned int minimal_mice_number = 500,
              int generation_duration = 200)
-      : m_map(map), m_log(log) {
+      : m_logger(log) {
+
+    // map
+    m_map = new Square(1, true);
+
+    // mice
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
       m_mice[i] = Mouse(m_map);
     }
+
+    // predators
+    m_predator_strategy = new Predator::Bounce(m_map, 0.2, true, 0.5);
+    m_predator_shape = new Predator::Rectangle(m_map, 0.2, 0.3);
+    Predator::Predator predator(m_predator_shape, m_predator_strategy);
+    m_predators.push_back(predator);
+
     m_params.minimal_mice_number = minimal_mice_number;
     m_params.generation_duration = generation_duration;
     m_params.nb_alive_mice = MICE_NUMBER;
@@ -63,10 +81,16 @@ public:
     m_params.generation = 0;
     m_params.time = 0;
 
-    m_display_parameters.center_position = map->get_center();
-    m_display_parameters.selected_mouse = 0;
+    m_display_parameters.center_position = m_map->get_center();
+    m_display_parameters.selected_mouse = MICE_NUMBER - 1;
     m_display_parameters.zoom = 1;
     m_display_parameters.follow_mouse = false;
+  }
+
+  ~Experiment() {
+    delete m_map;
+    delete m_predator_strategy;
+    delete m_predator_shape;
   }
 
   void add_predator(Predator::Predator predator) {
@@ -77,16 +101,21 @@ public:
             float map_size) const {
     sf::RectangleShape background(sf::Vector2f({map_size, map_size}));
     background.setPosition(offset);
-    background.setFillColor(sf::Color({50, 50, 50}));
+    background.setFillColor(sf::Color({80, 80, 80}));
     window->draw(background);
-    for (Mouse mouse : m_mice) {
-      if (mouse.is_alive()) {
-        mouse.draw(window, offset, m_display_parameters.zoom * map_size);
+    for (size_t idx_mouse = 0; idx_mouse < MICE_NUMBER; idx_mouse++) {
+      if (m_mice[idx_mouse].is_alive()) {
+        bool is_selected_mouse =
+            (m_display_parameters.selected_mouse == idx_mouse);
+        m_mice[idx_mouse].draw(window, offset,
+                               m_display_parameters.zoom * map_size,
+                               is_selected_mouse);
       }
     }
     for (Predator::Predator const &predator : m_predators) {
       predator.draw(window, offset, m_display_parameters.zoom * map_size);
     }
+    m_map->draw(window, offset, map_size);
   }
 
   void do_one_step() {
@@ -115,9 +144,9 @@ public:
     }
 
     if (condition_end_of_generation()) {
-      m_log->store(m_params.generation,
-                   m_params.time / m_params.generation_duration,
-                   (double)m_params.nb_alive_mice / (double)MICE_NUMBER);
+      m_logger->store(m_params.generation,
+                      m_params.time / m_params.generation_duration,
+                      (double)m_params.nb_alive_mice / (double)MICE_NUMBER);
       reproduction_round();
       for (Predator::Predator &predator : m_predators) {
         predator.start_of_the_round();

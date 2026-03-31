@@ -14,36 +14,21 @@ enum Screen_type { FULL, ONLY_MAP, ONLY_LEGEND, EMPTY };
 
 template <typename Mouse, unsigned int MICE_NUMBER> class Application {
 private:
+  char m_title[40];
+  sf::RenderWindow *m_window;
   Experiment<Mouse, MICE_NUMBER> *m_experiment;
   Logger *m_logger;
-  Map *m_map;
-  sf::RenderWindow *m_window;
-  // FIXME: should that be in app or in experiment?
-  std::vector<Predator::Predator> m_predators;
-
-  // FIXME: this should store the array of predator strats
-  Predator::Strategy *m_predator_strategy;
-  Predator::Shape *m_predator_shape;
-
-  char m_title[40];
-  float m_map_display_size;
 
   // for the display
+  float m_map_display_size;
   Screen_type m_display = FULL;
 
 public:
   Application(char title[40]) {
     strcpy(m_title, title);
-    m_map = new Square(1, true);
     m_map_display_size = 940;
     m_logger = new Logger(title);
-    m_experiment = new Experiment<Mouse, MICE_NUMBER>(m_map, m_logger);
-
-    m_predator_strategy = new Predator::Straigth(m_map, 0.2, true, 0.5);
-    m_predator_shape = new Predator::Rectangle(m_map, 0.2, 0.3);
-    Predator::Predator predator(m_predator_shape, m_predator_strategy);
-    m_experiment->add_predator(predator);
-    m_predators.push_back(predator);
+    m_experiment = new Experiment<Mouse, MICE_NUMBER>(m_logger);
 
     m_window = new sf::RenderWindow(
         sf::VideoMode(sf::VideoMode::getDesktopMode().width,
@@ -52,11 +37,8 @@ public:
   }
 
   ~Application() {
-    delete m_predator_strategy;
-    delete m_predator_shape;
     delete m_logger;
     delete m_window;
-    delete m_map;
     delete m_experiment;
   }
 
@@ -82,7 +64,6 @@ private:
     sf::Vector2f offset({5.0f, 5.0f});
     m_window->clear(sf::Color::Black);
     m_experiment->draw(m_window, offset, m_map_display_size);
-    m_map->draw(m_window, offset, m_map_display_size);
     m_experiment->draw_legend(m_window, offset);
     m_logger->plot(m_window, offset + sf::Vector2f({m_map_display_size, 0.0f}),
                    {sf::VideoMode::getDesktopMode().width - m_map_display_size,
