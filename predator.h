@@ -9,6 +9,7 @@
 #include <SFML/System/Vector2.hpp>
 #include <cmath>
 #include <cstdlib>
+#include <iostream>
 
 namespace Predator {
 
@@ -40,7 +41,9 @@ class Strategy {
 public:
   virtual PositionAngle
   start_of_the_round(PositionAngle previous_state) const = 0;
-  virtual PositionAngle advance(PositionAngle state, double dt) = 0;
+  virtual PositionAngle advance(PositionAngle state, // the previous state
+                                double time,         // the current time
+                                double dt) = 0;      // the increment
   virtual bool killing_strategy(double time) const = 0;
   // ------------------------------------------------------------------------ //
 
@@ -84,12 +87,13 @@ public:
 
   void start_of_the_round() {
     m_internal_clock = 0.0;
-    m_state = m_strategy->start_of_the_round(m_state);
+    PositionAngle new_state = m_strategy->start_of_the_round(m_state);
+    m_state = new_state;
   }
 
   void do_one_step(double dt) {
     m_internal_clock += dt;
-    m_state = m_strategy->advance(m_state, dt);
+    m_state = m_strategy->advance(m_state, m_internal_clock, dt);
   }
 
   Position get_position() const { return m_state.position; }
@@ -119,7 +123,7 @@ public:
     sf::Vector2f position({(float)offset.x, (float)offset.y});
     sf::CircleShape death(m_radius * window_size);
     death.setPosition(position);
-    death.setFillColor(sf::Color::Red);
+    death.setFillColor(sf::Color(255, 0, 0, 127));
     death.setOrigin(m_radius * window_size, m_radius * window_size);
     window->draw(death);
   }
@@ -165,8 +169,8 @@ struct Path {
   Position end_point;
 
   Position operator()(double t) const {
-    double T = (sin(frequency * t) + 1) / 2;
-    return T * end_point + (1 - T) * start_point;
+    double T = (cos(frequency * t) + 1) / 2;
+    return T * start_point + (1 - T) * end_point;
   }
 };
 
@@ -174,10 +178,9 @@ class FollowPath : public Strategy {
   // TODO: for the moment the angle is wrong
 private:
   Path m_path;
-  double m_internal_clock;
 
 public:
-  FollowPath(Map *map) : Strategy(map), m_internal_clock(0) {
+  FollowPath(Map *map) : Strategy(map) {
     m_path.start_point = m_map->rnd_position();
     m_path.end_point = m_map->rnd_position();
     m_path.frequency = 5 * (double)std::rand() / RAND_MAX;
@@ -188,9 +191,9 @@ public:
     return {m_path.start_point, 0};
   }
 
-  PositionAngle advance(PositionAngle /*state*/, double dt) override {
-    m_internal_clock += dt;
-    return {m_path(m_internal_clock), 0};
+  PositionAngle advance(PositionAngle /*state*/, double time,
+                        double /*dt*/) override {
+    return {m_path(time), 0};
   }
 
   bool killing_strategy(double /*time*/) const override { return true; }
@@ -218,7 +221,8 @@ public:
     return time > m_time_threshold;
   };
 
-  PositionAngle advance(PositionAngle state, double /*dt*/) override {
+  PositionAngle advance(PositionAngle state, double /*time*/,
+                        double /*dt*/) override {
     return state;
   }
 };
@@ -254,7 +258,8 @@ public:
                 double time_threshold = 0.5)
       : RandomWalk(map, velocity, random_pos, time_threshold) {}
 
-  PositionAngle advance(PositionAngle state, double dt) override {
+  PositionAngle advance(PositionAngle state, double /*time*/,
+                        double dt) override {
     PositionAngle result = state;
     result.angle =
         M_PI / 2 + atan2((state.position.y - 0.5), (state.position.x - 0.5));
@@ -282,7 +287,8 @@ public:
       : RandomWalk(map, velocity, random_pos, time_threshold) {}
 
 protected:
-  PositionAngle advance(PositionAngle state, double dt) override {
+  PositionAngle advance(PositionAngle state, double /*time*/,
+                        double dt) override {
     PositionAngle result = state;
     Position direction({std::cos(state.angle), std::sin(state.angle)});
     Position pos = state.position + dt * m_velocity * direction;
@@ -303,7 +309,8 @@ public:
       : RandomWalk(map, velocity, random_pos, time_threshold) {}
 
 protected:
-  PositionAngle advance(PositionAngle state, double dt) override {
+  PositionAngle advance(PositionAngle state, double /*time*/,
+                        double dt) override {
     PositionAngle result = state;
     Position direction({std::cos(state.angle), std::sin(state.angle)});
     Position pos = state.position + dt * m_velocity * direction;

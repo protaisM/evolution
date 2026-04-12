@@ -56,7 +56,9 @@ public:
   BaseMouse() : m_is_alive(false) {}
 
   Position get_position() const { return m_state.position; }
+  void set_position(Position const &pos) { m_state.position = pos; }
   double get_angle() const { return m_state.angle; }
+  void set_angle(double angle) { m_state.angle = std::fmod(angle, 2 * M_PI); }
   bool is_alive() const { return m_is_alive; }
   void kill() { m_is_alive = false; }
   void resurrect() { m_is_alive = true; }

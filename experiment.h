@@ -28,6 +28,10 @@ struct ExperimentParameters {
   double dt;
   unsigned int nb_alive_mice;
   unsigned int minimal_mice_number;
+
+  bool randomized_spawning_point;
+  Position spawning_point;
+  double spawning_angle;
 };
 
 struct DisplayParameters {
@@ -47,33 +51,30 @@ private:
   // coming up: food?
   std::array<Mouse, MICE_NUMBER> m_mice;
   std::vector<Predator::Predator> m_predators;
-  // FIXME: this should store the array of predator strats
-  Predator::Strategy *m_predator_strategy;
-  Predator::Shape *m_predator_shape;
+  std::vector<Predator::Strategy *> m_predator_strategies;
+  std::vector<Predator::Shape *> m_predator_shapes;
 
   // parameters
   ExperimentParameters m_params;
   DisplayParameters m_display_parameters;
 
 public:
-  Experiment(Logger *log, unsigned int minimal_mice_number = 500,
-             int generation_duration = 200)
+  Experiment(Logger *log, unsigned int minimal_mice_number = 750,
+             int generation_duration = 20)
       : m_logger(log) {
 
     // map
-    m_map = new Square(1, true);
-
-    // mice
-    for (unsigned int i = 0; i < MICE_NUMBER; i++) {
-      m_mice[i] = Mouse(m_map);
-    }
+    m_map = new Torus(1);
 
     // predators
-    // m_predator_strategy = new Predator::Bounce(m_map, 0.2, true, 0.5);
-    m_predator_strategy = new Predator::FollowPath(m_map);
-    m_predator_shape = new Predator::Rectangle(m_map, 0.2, 0.3);
-    Predator::Predator predator(m_predator_shape, m_predator_strategy);
-    m_predators.push_back(predator);
+    Predator::Shape *predator_shape = new Predator::Circle(m_map, 0.1);
+    m_predator_shapes.push_back(predator_shape);
+    for (size_t i = 0; i < 10; i++) {
+      Predator::Strategy *predator_strategy = new Predator::FollowPath(m_map);
+      m_predator_strategies.push_back(predator_strategy);
+      Predator::Predator predator(predator_shape, predator_strategy);
+      m_predators.push_back(predator);
+    }
 
     m_params.minimal_mice_number = minimal_mice_number;
     m_params.generation_duration = generation_duration;
@@ -81,17 +82,33 @@ public:
     m_params.dt = 0.005;
     m_params.generation = 0;
     m_params.time = 0;
+    m_params.randomized_spawning_point = false;
+    m_params.spawning_point = {0.5, 0.5};
+    m_params.spawning_angle = 0;
 
     m_display_parameters.center_position = m_map->get_center();
     m_display_parameters.selected_mouse = MICE_NUMBER - 1;
     m_display_parameters.zoom = 1;
     m_display_parameters.follow_mouse = false;
+
+    // mice
+    for (unsigned int i = 0; i < MICE_NUMBER; i++) {
+      m_mice[i] = Mouse(m_map);
+      if (!m_params.randomized_spawning_point) {
+        m_mice[i].set_position(m_params.spawning_point);
+        m_mice[i].set_angle(m_params.spawning_angle);
+      }
+    }
   }
 
   ~Experiment() {
     delete m_map;
-    delete m_predator_strategy;
-    delete m_predator_shape;
+    for (Predator::Shape *shape : m_predator_shapes) {
+      delete shape;
+    }
+    for (Predator::Strategy *strat : m_predator_strategies) {
+      delete strat;
+    }
   }
 
   void add_predator(Predator::Predator predator) {
@@ -201,49 +218,58 @@ private:
                 << std::endl;
       for (Mouse &mouse : m_mice) {
         mouse.resurrect();
+        mouse.mutate();
       }
       m_params.nb_alive_mice = MICE_NUMBER;
-      return;
-    }
-    unsigned int reproduction_rate = MICE_NUMBER / m_params.nb_alive_mice;
-    unsigned int count_alive_mice = 0;
-    unsigned int index_new_mouse = 0;
-    std::array<Mouse, MICE_NUMBER> new_mice;
-    for (unsigned int index_mouse_to_reproduce = 0;
-         index_mouse_to_reproduce < MICE_NUMBER; index_mouse_to_reproduce++) {
-      if (!m_mice[index_mouse_to_reproduce].is_alive()) {
-        continue;
+    } else {
+      unsigned int reproduction_rate = MICE_NUMBER / m_params.nb_alive_mice;
+      unsigned int count_alive_mice = 0;
+      unsigned int index_new_mouse = 0;
+      std::array<Mouse, MICE_NUMBER> new_mice;
+      for (unsigned int index_mouse_to_reproduce = 0;
+           index_mouse_to_reproduce < MICE_NUMBER; index_mouse_to_reproduce++) {
+        if (!m_mice[index_mouse_to_reproduce].is_alive()) {
+          continue;
+        }
+        // each mouse can reproduce a certain number of time
+        for (unsigned int baby = 0; baby < reproduction_rate; baby++) {
+          index_new_mouse = count_alive_mice * reproduction_rate + baby;
+          if (count_alive_mice >= m_params.nb_alive_mice) {
+            std::cout << "You're still bad at counting" << std::endl;
+            break;
+          }
+          if (index_new_mouse >= MICE_NUMBER) {
+            std::cerr << "Error in the reproduction" << std::endl;
+            break;
+          }
+          new_mice[index_new_mouse] = m_mice[index_mouse_to_reproduce];
+          new_mice[index_new_mouse].mutate();
+        }
+        count_alive_mice++;
       }
-      // each mouse can reproduce a certain number of time
-      for (unsigned int baby = 0; baby < reproduction_rate; baby++) {
-        index_new_mouse = count_alive_mice * reproduction_rate + baby;
-        if (count_alive_mice >= m_params.nb_alive_mice) {
-          std::cout << "You're still bad at counting" << std::endl;
-          break;
-        }
-        if (index_new_mouse >= MICE_NUMBER) {
-          std::cerr << "Error in the reproduction" << std::endl;
-          break;
-        }
-        new_mice[index_new_mouse] = m_mice[index_mouse_to_reproduce];
+      m_params.nb_alive_mice = index_new_mouse + 1;
+      // if reproduction rate was not the evolutive pressure,
+      // m_mices is not full: we populate the space between
+      // nb_alive_mice and MICE_NUMBER
+      unsigned int mouse_to_copy;
+      for (unsigned int index_new_mouse = m_params.nb_alive_mice;
+           index_new_mouse < MICE_NUMBER; index_new_mouse++) {
+        mouse_to_copy = rnd_int_smaller_than(m_params.nb_alive_mice);
+        new_mice[index_new_mouse] = new_mice[mouse_to_copy];
         new_mice[index_new_mouse].mutate();
-        new_mice[index_new_mouse].randomize_position();
       }
-      count_alive_mice++;
+      m_mice = new_mice;
+      m_params.nb_alive_mice = MICE_NUMBER;
     }
-    m_params.nb_alive_mice = index_new_mouse + 1;
-    // if reproduction rate was not the evolutive pressure,
-    // m_mices is not full: we populate the space between
-    // nb_alive_mice and MICE_NUMBER
-    unsigned int mouse_to_copy;
-    for (unsigned int index_new_mouse = m_params.nb_alive_mice;
-         index_new_mouse < MICE_NUMBER; index_new_mouse++) {
-      mouse_to_copy = rnd_int_smaller_than(m_params.nb_alive_mice);
-      new_mice[index_new_mouse] = new_mice[mouse_to_copy];
-      new_mice[index_new_mouse].mutate();
-      new_mice[index_new_mouse].randomize_position();
+
+    // we respawn all the mice
+    for (Mouse &mouse : m_mice) {
+      if (m_params.randomized_spawning_point) {
+        mouse.randomize_position();
+      } else {
+        mouse.set_position(m_params.spawning_point);
+        mouse.set_angle(m_params.spawning_angle);
+      }
     }
-    m_mice = new_mice;
-    m_params.nb_alive_mice = MICE_NUMBER;
   }
 };
