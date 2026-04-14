@@ -1,6 +1,7 @@
 #pragma once
 
 #include "brain.h"
+#include "food.h"
 #include "logger.h"
 #include "map.h"
 #include "position.h"
@@ -43,20 +44,38 @@ struct DisplayParameters {
   bool follow_mouse;
 };
 
-template <typename Mouse, unsigned int MICE_NUMBER> class SelectionStrategy {
+template <typename Mouse, unsigned int MICE_NUMBER> class ExperimentRules {
 public:
-  virtual ~SelectionStrategy() {}
+  virtual ~ExperimentRules() {}
 
   //---------------------------------------------------------------//
   // virtual functions, every subclass should implement these
+  virtual void if_in_predator(Mouse &, ExperimentParameters &) = 0;
+  virtual void if_outside_map(Mouse &, ExperimentParameters &) = 0;
+  virtual bool condition_end_generation(ExperimentParameters &) = 0;
   virtual void reproduce(std::array<Mouse, MICE_NUMBER> &,
                          ExperimentParameters &) = 0;
   //---------------------------------------------------------------//
 };
 
 template <typename Mouse, unsigned int MICE_NUMBER>
-class OnlyReproduceAlive : public SelectionStrategy<Mouse, MICE_NUMBER> {
+class KillingMice : public ExperimentRules<Mouse, MICE_NUMBER> {
 public:
+  // we end the generation if we have no enough mice, or if the time is over
+  void if_in_predator(Mouse &mouse, ExperimentParameters &params) override {
+    if (mouse.kill()) {
+      params.nb_alive_mice--;
+    }
+  }
+  void if_outside_map(Mouse &mouse, ExperimentParameters &params) override {
+    if (mouse.kill()) {
+      params.nb_alive_mice--;
+    }
+  }
+  bool condition_end_generation(ExperimentParameters &params) override {
+    return (params.nb_alive_mice < params.minimal_mice_number) ||
+           params.time >= params.generation_duration;
+  }
   void reproduce(std::array<Mouse, MICE_NUMBER> &mice,
                  ExperimentParameters &params) override {
     // default
@@ -129,13 +148,14 @@ private:
   Map *m_map;
   Logger *const m_logger;
 
-  SelectionStrategy<Mouse, MICE_NUMBER> *m_reproduction_strat;
+  ExperimentRules<Mouse, MICE_NUMBER> *m_experiment_rules;
 
   // coming up: food?
   std::array<Mouse, MICE_NUMBER> m_mice;
   std::vector<Predator::Predator> m_predators;
   std::vector<Predator::Strategy *> m_predator_strategies;
   std::vector<Predator::Shape *> m_predator_shapes;
+  std::vector<Food> m_food;
 
   // parameters
   ExperimentParameters m_params;
@@ -150,18 +170,19 @@ public:
     m_map = new Torus(1);
 
     // reproduction strategy
-    m_reproduction_strat = new OnlyReproduceAlive<Mouse, MICE_NUMBER>();
+    m_experiment_rules = new KillingMice<Mouse, MICE_NUMBER>();
 
     // predators
     Predator::Shape *predator_shape = new Predator::Circle(m_map, 0.1);
     m_predator_shapes.push_back(predator_shape);
-    for (size_t i = 0; i < 10; i++) {
+    for (size_t i = 0; i < 5; i++) {
       Predator::Strategy *predator_strategy = new Predator::FollowPath(m_map);
       m_predator_strategies.push_back(predator_strategy);
       Predator::Predator predator(predator_shape, predator_strategy);
       m_predators.push_back(predator);
     }
 
+    // all the parameters
     m_params.minimal_mice_number = minimal_mice_number;
     m_params.generation_duration = generation_duration;
     m_params.nb_alive_mice = MICE_NUMBER;
@@ -189,17 +210,13 @@ public:
 
   ~Experiment() {
     delete m_map;
-    delete m_reproduction_strat;
+    delete m_experiment_rules;
     for (Predator::Shape *shape : m_predator_shapes) {
       delete shape;
     }
     for (Predator::Strategy *strat : m_predator_strategies) {
       delete strat;
     }
-  }
-
-  void add_predator(Predator::Predator predator) {
-    m_predators.push_back(predator);
   }
 
   void draw(sf::RenderWindow *window, sf::Vector2f offset,
@@ -234,29 +251,27 @@ public:
       if (!mouse.is_alive()) {
         continue;
       }
-      bool should_die = !mouse.advance(m_params.dt, predators_states);
+      bool outside_the_map = !mouse.advance(m_params.dt, predators_states);
+      if (outside_the_map) {
+        m_experiment_rules->if_outside_map(mouse, m_params);
+      }
       for (Predator::Predator const &predator : m_predators) {
         if (predator.is_in_predator(mouse.get_position())) {
-          should_die = true;
+          m_experiment_rules->if_in_predator(mouse, m_params);
         }
-      }
-      if (should_die) {
-        // the mouse fell outside of the map (that had no boundaries)
-        // or has been eaten by a predator...
-        mouse.kill();
-        m_params.nb_alive_mice--;
       }
     }
 
-    if (condition_end_of_generation()) {
+      if (!m_experiment_rules->condition_end_generation(m_params)) {
+        return;
+      }
       m_logger->store(m_params.generation,
                       m_params.time / m_params.generation_duration,
                       (double)m_params.nb_alive_mice / (double)MICE_NUMBER);
-      m_reproduction_strat->reproduce(m_mice, m_params);
+      m_experiment_rules->reproduce(m_mice, m_params);
       for (Predator::Predator &predator : m_predators) {
         predator.start_of_the_round();
       }
-    }
   }
 
   void add_to_dt(double dt) { m_params.dt = std::max(0.005, m_params.dt + dt); }
@@ -289,11 +304,5 @@ public:
     legend.setPosition(offset);
     legend.setCharacterSize(20);
     window->draw(legend);
-  }
-
-private:
-  bool condition_end_of_generation() {
-    return (m_params.nb_alive_mice < m_params.minimal_mice_number) ||
-           m_params.time >= m_params.generation_duration;
   }
 };

@@ -60,7 +60,11 @@ public:
   double get_angle() const { return m_state.angle; }
   void set_angle(double angle) { m_state.angle = std::fmod(angle, 2 * M_PI); }
   bool is_alive() const { return m_is_alive; }
-  void kill() { m_is_alive = false; }
+  bool kill() {
+    bool was_alive = m_is_alive;
+    m_is_alive = false;
+    return was_alive;
+  }
   void resurrect() { m_is_alive = true; }
   void randomize_position() { m_state.position = m_map->rnd_position(); }
 

@@ -9,7 +9,6 @@
 #include <SFML/System/Vector2.hpp>
 #include <cmath>
 #include <cstdlib>
-#include <iostream>
 
 namespace Predator {
 
