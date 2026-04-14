@@ -18,6 +18,7 @@ private:
   sf::RenderWindow *m_window;
   Experiment<Mouse, MICE_NUMBER> *m_experiment;
   Logger *m_logger;
+  Map *m_map;
 
   // for the display
   float m_map_display_size;
@@ -28,7 +29,8 @@ public:
     strcpy(m_title, title);
     m_map_display_size = 940;
     m_logger = new Logger(title);
-    m_experiment = new Experiment<Mouse, MICE_NUMBER>(m_logger);
+    m_map = new Torus(1);
+    m_experiment = new Experiment<Mouse, MICE_NUMBER>(m_logger, m_map);
 
     m_window = new sf::RenderWindow(
         sf::VideoMode(sf::VideoMode::getDesktopMode().width,
@@ -38,6 +40,7 @@ public:
 
   ~Application() {
     delete m_logger;
+    delete m_map;
     delete m_window;
     delete m_experiment;
   }

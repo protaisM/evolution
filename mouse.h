@@ -46,6 +46,10 @@ protected:
   bool m_is_alive;
   Color m_color;
 
+  // food related
+  unsigned int m_nb_lifes = 1;
+  std::vector<unsigned int> m_consumed_food;
+
 public:
   BaseMouse(Map *map)
       : m_brain(), m_map(map), m_state({map->rnd_position(), rand_angle()}),
@@ -60,12 +64,40 @@ public:
   double get_angle() const { return m_state.angle; }
   void set_angle(double angle) { m_state.angle = std::fmod(angle, 2 * M_PI); }
   bool is_alive() const { return m_is_alive; }
-  bool kill() {
-    bool was_alive = m_is_alive;
-    m_is_alive = false;
-    return was_alive;
+
+  bool has_consumed(unsigned int id) {
+    return std::find(m_consumed_food.begin(), m_consumed_food.end(), id) !=
+           m_consumed_food.end();
   }
-  void resurrect() { m_is_alive = true; }
+
+  bool kill() {
+    if (!m_is_alive) {
+      return false;
+    }
+    if (m_nb_lifes <= 1) {
+      m_nb_lifes = 0;
+      m_is_alive = false;
+      return true;
+    }
+    m_nb_lifes--;
+    return false;
+  }
+
+  void resurrect() {
+    m_is_alive = true;
+    m_nb_lifes = 1;
+  }
+
+  void add_one_life(unsigned int id) {
+    m_consumed_food.push_back(id);
+    m_nb_lifes += 100;
+  }
+
+  void reset_lifes() {
+    m_consumed_food.clear();
+    m_nb_lifes = 1;
+  }
+
   void randomize_position() { m_state.position = m_map->rnd_position(); }
 
   double get_sight_radius() const { return m_sight_radius; }
