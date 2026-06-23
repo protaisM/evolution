@@ -174,10 +174,12 @@ public:
     sf::Vector2f position({(float)zoom * (float)m_state.position.x,
                            (float)zoom * (float)m_state.position.y});
     position = position + offset;
+
     Eggshape body;
     float radius = 7;
+    float elongation = 5 + radius * m_velocity / 2;
     body.setSize(radius);
-    body.setElongation(5 + radius * m_velocity / 2);
+    body.setElongation(elongation);
     body.setPosition(position);
     body.setOrigin(radius, radius);
     body.setFillColor(sf::Color(m_color.r, m_color.g, m_color.b, transparency));
