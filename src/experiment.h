@@ -166,7 +166,6 @@ private:
   Level m_level;
 
   std::array<Mouse, MICE_NUMBER> m_mice;
-  std::vector<Predator::Predator> m_predators;
   std::vector<Food> m_food;
 
   // parameters
@@ -176,12 +175,10 @@ private:
 public:
   Experiment(Logger *log, Map *map, unsigned int minimal_mice_number = 750,
              int generation_duration = 20)
-      : m_map(map), m_logger(log), m_level(map) {
+      : m_map(map), m_logger(log), m_level(map, 1) {
 
     // reproduction strategy
     m_experiment_rules = new KillingMice<Mouse, MICE_NUMBER>();
-
-    m_predators = m_level.create_all_predators();
 
     // food
     for (unsigned int i = 0; i < 20; i++) {
@@ -214,9 +211,7 @@ public:
     }
   }
 
-  ~Experiment() {
-    delete m_experiment_rules;
-  }
+  ~Experiment() { delete m_experiment_rules; }
 
   void draw(sf::RenderWindow *window, sf::Vector2f offset,
             float map_size) const {
@@ -233,8 +228,9 @@ public:
                                is_selected_mouse);
       }
     }
-    for (Predator::Predator const &predator : m_predators) {
-      predator.draw(window, offset, m_display_parameters.zoom * map_size);
+    for (std::unique_ptr<Predator::Predator> const &predator :
+         m_level.m_predators) {
+      predator->draw(window, offset, m_display_parameters.zoom * map_size);
     }
     for (Food const &food : m_food) {
       food.draw(window, offset, m_display_parameters.zoom * map_size);
@@ -245,9 +241,10 @@ public:
   void do_one_step() {
     m_params.time = m_params.time + m_params.dt;
     std::vector<PositionAngle> predators_states;
-    for (Predator::Predator &predator : m_predators) {
-      predator.do_one_step(m_params.dt);
-      predators_states.push_back(predator.get_state());
+    for (std::unique_ptr<Predator::Predator> const &predator :
+         m_level.m_predators) {
+      predator->do_one_step(m_params.dt);
+      predators_states.push_back(predator->get_state());
     }
     for (Mouse &mouse : m_mice) {
       if (!mouse.is_alive()) {
@@ -257,8 +254,9 @@ public:
       if (outside_the_map) {
         m_experiment_rules->if_outside_map(mouse, m_params);
       }
-      for (Predator::Predator const &predator : m_predators) {
-        if (predator.is_in_predator(mouse.get_position())) {
+      for (std::unique_ptr<Predator::Predator> const &predator :
+           m_level.m_predators) {
+        if (predator->is_in_predator(mouse.get_position())) {
           m_experiment_rules->if_in_predator(mouse, m_params);
         }
       }
@@ -276,8 +274,9 @@ public:
                     m_params.time / m_params.generation_duration,
                     (double)m_params.nb_alive_mice / (double)MICE_NUMBER);
     m_experiment_rules->reproduce(m_mice, m_params);
-    for (Predator::Predator &predator : m_predators) {
-      predator.start_of_the_round();
+    for (std::unique_ptr<Predator::Predator> const &predator :
+         m_level.m_predators) {
+      predator->start_of_the_round();
     }
   }
 

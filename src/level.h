@@ -4,49 +4,44 @@
 
 #include "map.h"
 #include "predator.h"
+#include "predator_factory.hpp"
 
-struct Pair {
+struct Strat_Shape_Pair {
   unsigned int strat;
   unsigned int shape;
 };
 
 class Level {
-
-private:
-  std::vector<Predator::Strategy *> m_predator_strategies;
-  std::vector<Predator::Shape *> m_predator_shapes;
-
-  std::vector<Pair> m_predators;
-
 public:
-  Level(Map *map) {
-    Predator::Shape *predator_shape = new Predator::Circle(map, 0.1);
-    m_predator_shapes.push_back(predator_shape);
-    Pair pair{};
-    pair.shape = 0;
-    for (unsigned int i = 0; i < 5; i++) {
-      Predator::Strategy *predator_strategy = new Predator::FollowPath(map);
-      m_predator_strategies.push_back(predator_strategy);
-      pair.strat = i;
-      m_predators.push_back(pair);
+  std::vector<std::unique_ptr<Predator::Predator>> m_predators;
+
+  Level(Map *map, unsigned int level_nb = 0) {
+    PredatorFactory factory(map);
+    switch (level_nb) {
+    case 1: {
+      // first, the square
+      m_predators.push_back(
+          factory.newSquarePredator(0.2, {0.3, 0.5}, {0.7, 0.5}, 3));
+
+      // then, all the circles
+      m_predators.push_back(
+          factory.newCirclePredator(0.1, {0.15, 0.15}, {0.15, 0.85}, 5));
+      m_predators.push_back(
+          factory.newCirclePredator(0.1, {0.15, 0.85}, {0.85, 0.85}, 5));
+      m_predators.push_back(
+          factory.newCirclePredator(0.1, {0.85, 0.85}, {0.85, 0.15}, 5));
+      m_predators.push_back(
+          factory.newCirclePredator(0.1, {0.85, 0.15}, {0.15, 0.15}, 5));
+      break;
+    }
+    default: {
+      for (unsigned int i = 0; i < 5; i++) {
+        m_predators.push_back(factory.newCirclePredator(0.1));
+      }
+      break;
+    }
     }
   }
 
-  ~Level() {
-    for (Predator::Shape *shape : m_predator_shapes) {
-      delete shape;
-    }
-    for (Predator::Strategy *strat : m_predator_strategies) {
-      delete strat;
-    }
-  }
-
-  std::vector<Predator::Predator> create_all_predators() const {
-    std::vector<Predator::Predator> predators;
-    for (Pair pred_pair : m_predators) {
-      predators.emplace_back(m_predator_shapes[pred_pair.shape],
-                             m_predator_strategies[pred_pair.strat]);
-    }
-    return predators;
-  }
+  ~Level() = default;
 };

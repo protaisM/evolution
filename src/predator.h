@@ -9,6 +9,7 @@
 #include <SFML/System/Vector2.hpp>
 #include <cmath>
 #include <cstdlib>
+#include <memory>
 
 namespace Predator {
 
@@ -61,14 +62,20 @@ private:
   PositionAngle m_state;
   double m_internal_clock;
 
-  Shape *m_shape;
-  Strategy *m_strategy;
+  std::unique_ptr<Shape> m_shape;
+  std::unique_ptr<Strategy> m_strategy;
 
 public:
-  Predator(Shape *shape, Strategy *strategy)
-      : m_shape(shape), m_strategy(strategy) {
-    start_of_the_round();
-  }
+  Predator(std::unique_ptr<Shape> shape, std::unique_ptr<Strategy> strategy)
+      : m_shape(std::move(shape)), m_strategy(std::move(strategy)) {}
+
+  ~Predator() = default;
+
+  Predator(const Predator &) = delete;
+  Predator &operator=(const Predator &) = delete;
+
+  Predator(Predator &&) = default;
+  Predator &operator=(Predator &&) = default;
 
   bool is_in_predator(Position pos) const {
     if (m_shape->is_in(m_state.position, pos)) {
@@ -183,6 +190,14 @@ public:
     m_path.start_point = m_map->rnd_position();
     m_path.end_point = m_map->rnd_position();
     m_path.frequency = 5 * (double)std::rand() / RAND_MAX;
+  }
+
+  FollowPath(Map *map, Position start_point, Position end_point,
+             double frequency)
+      : Strategy(map) {
+    m_path.start_point = start_point;
+    m_path.end_point = end_point;
+    m_path.frequency = frequency;
   }
 
   PositionAngle
