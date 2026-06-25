@@ -8,6 +8,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_compile_options(-Wall -Wpedantic -Wextra -g)
 
 add_subdirectory(src)
+add_subdirectory(tests)
 
 # json library
 set(JSON_BuildTests OFF CACHE INTERNAL "")
@@ -16,9 +17,3 @@ add_subdirectory(nlohmann_json)
 # sfml
 find_package(SFML 2.5 COMPONENTS graphics window system REQUIRED)
 
-add_executable(${PROJECT_NAME} test.cc)
-
-target_link_libraries(${PROJECT_NAME} PRIVATE src)
-# link all the libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE sfml-graphics sfml-window sfml-system)
-target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json::nlohmann_json)

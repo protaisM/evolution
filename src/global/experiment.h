@@ -181,7 +181,7 @@ public:
     m_experiment_rules = new KillingMice<Mouse, MICE_NUMBER>();
 
     // food
-    for (unsigned int i = 0; i < 20; i++) {
+    for (unsigned int i = 0; i < 0; i++) {
       m_food.emplace_back(m_map, m_map->rnd_position());
     }
 

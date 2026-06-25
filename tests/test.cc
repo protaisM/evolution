@@ -30,6 +30,11 @@ int main() {
   // my_experiment.add_predator(&circle);
   // my_experiment.run_and_display();
   // my_log.write_to_file();
+  Brain<1, 2, 10, 10> brain;
+  for (double x = -1; x <= 1; x += 0.1) {
+    auto y = brain.activate({x});
+    std::cout << x << " -> " << y[0] << '\n';
+  }
 
   Application<TimeRobot, 1000> simu("Test simu");
   simu.run();

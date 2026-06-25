@@ -21,17 +21,17 @@ public:
     case 1: {
       // first, the square
       m_predators.push_back(
-          factory.newSquarePredator(0.2, {0.3, 0.5}, {0.7, 0.5}, 3));
+          factory.newSquarePredator(0.2, {0.3, 0.5}, {0.7, 0.5}, 1));
 
       // then, all the circles
       m_predators.push_back(
-          factory.newCirclePredator(0.1, {0.15, 0.15}, {0.15, 0.85}, 5));
+          factory.newCirclePredator(0.1, {0.15, 0.15}, {0.15, 0.85}, 2));
       m_predators.push_back(
-          factory.newCirclePredator(0.1, {0.15, 0.85}, {0.85, 0.85}, 5));
+          factory.newCirclePredator(0.1, {0.15, 0.85}, {0.85, 0.85}, 2));
       m_predators.push_back(
-          factory.newCirclePredator(0.1, {0.85, 0.85}, {0.85, 0.15}, 5));
+          factory.newCirclePredator(0.1, {0.85, 0.85}, {0.85, 0.15}, 2));
       m_predators.push_back(
-          factory.newCirclePredator(0.1, {0.85, 0.15}, {0.15, 0.15}, 5));
+          factory.newCirclePredator(0.1, {0.85, 0.15}, {0.15, 0.15}, 2));
       break;
     }
     default: {

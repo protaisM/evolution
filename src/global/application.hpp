@@ -14,7 +14,7 @@ enum Screen_type { FULL, ONLY_MAP, ONLY_LEGEND, EMPTY };
 
 template <typename Mouse, unsigned int MICE_NUMBER> class Application {
 private:
-  char m_title[40];
+  std::string m_title;
   sf::RenderWindow *m_window;
   Experiment<Mouse, MICE_NUMBER> *m_experiment;
   Logger *m_logger;
@@ -25,17 +25,17 @@ private:
   Screen_type m_display = FULL;
 
 public:
-  Application(char title[40]) {
-    strcpy(m_title, title);
+  Application(std::string title) {
+    m_title = title;
     m_map_display_size = 940;
     m_logger = new Logger(title);
-    m_map = new Torus(1);
-    m_experiment = new Experiment<Mouse, MICE_NUMBER>(m_logger, m_map);
+    m_map = new Square(1, false);
+    m_experiment = new Experiment<Mouse, MICE_NUMBER>(m_logger, m_map, 750);
 
     m_window = new sf::RenderWindow(
         sf::VideoMode(sf::VideoMode::getDesktopMode().width,
                       sf::VideoMode::getDesktopMode().height),
-        std::string(m_title));
+        m_title);
   }
 
   ~Application() {
