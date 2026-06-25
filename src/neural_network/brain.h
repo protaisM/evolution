@@ -54,8 +54,8 @@ struct Connection {
   Connection(unsigned int node_in, unsigned int node_out) {
     idx_node_in = node_in;
     idx_node_out = node_out;
-    weight = (((double)rand() / RAND_MAX) * 2 - 1);
-    shift = 0.1 * (((double)rand() / RAND_MAX) * 2 - 1);
+    weight = 0.2 * (((double)rand() / RAND_MAX) * 2 - 1);
+    shift = 0.01 * (((double)rand() / RAND_MAX) * 2 - 1);
   }
 
   Connection(unsigned int node_in, unsigned int node_out, double w, double b) {
@@ -194,10 +194,10 @@ public:
     if (rand_0_1() < 0.1) {
       change_connection_weight(0.5);
     }
-    if (rand_0_1() < 0.03) {
+    if (rand_0_1() < 0.01) {
       add_random_connection();
     }
-    if (rand_0_1() < 0.01) {
+    if (rand_0_1() < 0.005) {
       add_random_node();
     }
   }
@@ -222,8 +222,8 @@ private:
     }
     m_nb_hidden_nodes++;
     unsigned int rnd_connection = rnd_int_smaller_than(m_nb_connections);
-    Connection new_connection(idx_new_node,
-                              m_connections[rnd_connection].idx_node_out);
+    Connection new_connection(
+        idx_new_node, m_connections[rnd_connection].idx_node_out, 1., 0);
     m_connections[rnd_connection].idx_node_out = idx_new_node;
     m_connections[m_nb_connections] = new_connection;
     m_nb_connections++;
@@ -251,7 +251,7 @@ private:
       }
     }
     if (is_new_connection and rnd_node_in_idx != rnd_node_out_idx) {
-      Connection new_connection(rnd_node_in_idx, rnd_node_out_idx, 1., 0.);
+      Connection new_connection(rnd_node_in_idx, rnd_node_out_idx);
       m_connections[m_nb_connections] = new_connection;
       m_nb_connections++;
       // sort the brain

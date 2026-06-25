@@ -3,7 +3,7 @@
 #include "mouse.h"
 
 int main() {
-  srand(time(NULL));
+  srand(1);
 
   // Circle my_map(1, true);
   // Square my_map(1, true);
