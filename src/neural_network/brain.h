@@ -8,156 +8,47 @@
 #include <string>
 #include <vector>
 
-inline unsigned int rnd_int_smaller_than(unsigned int bound) {
-  if (bound <= 0) {
-    throw std::runtime_error(
-        "Seems like the bound in rnd_int_smaller_than is <= 0");
-  }
-  return rand() % bound;
-}
+#include "connection.h"
+#include "helper_brain.h"
+#include "node.h"
 
-inline double rand_0_1() { return (double)std::rand() / ((double)RAND_MAX); }
-
-inline double rand_normal() {
-  double result = -6;
-  for (unsigned int i = 0; i < 12; i++) {
-    result += rand_0_1();
-  }
-  result /= 6;
-  return result;
-}
-
-inline double relu(double x) { return std::max(x, 0.0); }
-
-struct Node {
-  double value;
-  double bias;
-
-  Node() : value(0), bias(0.01 * (((double)rand() / RAND_MAX) * 2 - 1)) {}
-  Node(double b) : value(0), bias(b) {}
-
-  void init() { value = 0; }
-  double get_value() const { return value; }
-  void set_value(double x) { value = x; }
-  double add_to_value(double x) {
-    value += x;
-    return value;
-  }
-  double activate() { return std::tanh(value + bias); }
-  void mutate(double factor) { bias += 0.25 * factor * rand_normal(); }
-};
-
-struct Connection {
-  double weight;
-  unsigned int idx_node_in;
-  unsigned int idx_node_out;
-  bool enabled;
-
-  Connection(unsigned int node_in, unsigned int node_out) {
-    idx_node_in = node_in;
-    idx_node_out = node_out;
-    weight = 0.2 * (((double)rand() / RAND_MAX) * 2 - 1);
-    enabled = true;
-  }
-
-  Connection(unsigned int node_in, unsigned int node_out, double w) {
-    idx_node_in = node_in;
-    idx_node_out = node_out;
-    weight = w;
-    enabled = true;
-  }
-
-  Connection() {}
-
-  void mutate(double factor) { weight += factor * rand_normal(); }
-  void toggle_enabled() { enabled = !enabled; }
-};
-
-template <unsigned int NB_IN_NODES, unsigned int NB_OUT_NODES,
-          unsigned int MAX_BRAIN_SIZE, unsigned int MAX_NB_CONNECTIONS>
-class Brain {
+template <unsigned int NB_IN_NODES, unsigned int NB_OUT_NODES> class Brain {
 private:
-  std::array<Node, MAX_BRAIN_SIZE> m_nodes;
-  std::array<Connection, MAX_NB_CONNECTIONS> m_connections;
+  std::vector<Node> m_nodes;
+  std::vector<Connection> m_connections;
   unsigned int m_nb_hidden_nodes;
   unsigned int m_nb_connections;
 
 public:
-  Brain(unsigned int nb_hidden_nodes = 0)
-      : m_nb_hidden_nodes(nb_hidden_nodes),
-        m_nb_connections(NB_IN_NODES + NB_OUT_NODES) {
-    /* The layout is the following:
+  Brain(unsigned int nb_hidden_nodes = 0) : m_nb_hidden_nodes(nb_hidden_nodes) {
+    /* The node layout is the following:
      * m_nodes = [ input_nodes, output_nodes, hidden_nodes ]
      */
-    if (nb_hidden_nodes + NB_IN_NODES + NB_OUT_NODES > MAX_BRAIN_SIZE or
-        NB_IN_NODES + NB_OUT_NODES > MAX_NB_CONNECTIONS) {
-      throw std::runtime_error("Invalid brain size");
-      exit(1);
-    }
-    for (unsigned int i = 0; i < NB_IN_NODES; i++) {
-      Node input_node;
-      m_nodes[i] = input_node;
-    }
-    unsigned int hidden_node_beginning = NB_IN_NODES + NB_OUT_NODES;
-    for (unsigned int i = NB_IN_NODES; i < hidden_node_beginning; i++) {
-      Node output_node;
-      m_nodes[i] = output_node;
-    }
-    for (unsigned int i = hidden_node_beginning;
-         i < hidden_node_beginning + m_nb_hidden_nodes; i++) {
-      Node hidden_node;
-      m_nodes[i] = hidden_node;
+    unsigned int total_nb_nodes =
+        NB_IN_NODES + NB_OUT_NODES + m_nb_hidden_nodes;
+    for (unsigned int i = 0; i < total_nb_nodes; i++) {
+      m_nodes.emplace_back(); // default constructor
     }
 
-    /* Create all the connections:
-     * any input or output node should be linked to a hidden node.
-     * This process is random.
-     */
-    if (m_nb_hidden_nodes > 0) {
-      unsigned int hidden_node_idx;
-      for (unsigned int i = 0; i < NB_IN_NODES; i++) {
-        hidden_node_idx = rnd_int_smaller_than(m_nb_hidden_nodes);
-        Connection connection(i, hidden_node_beginning + hidden_node_idx);
-        m_connections[i] = connection;
+    // create all connections, one for each output node
+    m_nb_connections = NB_OUT_NODES;
+    for (unsigned int i = 0; i < NB_OUT_NODES; i++) {
+      unsigned int rnd_node_idx =
+          rnd_int_smaller_than(NB_IN_NODES + m_nb_hidden_nodes);
+      if (rnd_node_idx >= NB_IN_NODES) { // skip the out nodes
+        rnd_node_idx += NB_OUT_NODES;
       }
-      for (unsigned int i = NB_IN_NODES; i < hidden_node_beginning; i++) {
-        hidden_node_idx = rnd_int_smaller_than(m_nb_hidden_nodes);
-        Connection connection(hidden_node_beginning + hidden_node_idx, i);
-        m_connections[i] = connection;
-      }
-    } else if (m_nb_hidden_nodes == 0) {
-      m_nb_connections = NB_IN_NODES;
-      unsigned int output_node_idx;
-      for (unsigned int i = 0; i < NB_IN_NODES; i++) {
-        output_node_idx = rnd_int_smaller_than(NB_OUT_NODES);
-        Connection connection(i, NB_IN_NODES + output_node_idx);
-        m_connections[i] = connection;
-      }
-    } else {
-      throw std::runtime_error("Invalid number of hidden nodes");
+      m_connections.emplace_back(rnd_node_idx, NB_IN_NODES + i);
     }
-    set_to_zero();
   }
 
   std::array<double, NB_OUT_NODES>
   activate(std::array<double, NB_IN_NODES> input) {
     set_to_zero();
-    for (unsigned int i = 0; i < NB_IN_NODES; i++) {
-      m_nodes[i].set_value(input[i]);
-    }
-    for (unsigned int i = 0; i < m_nb_connections; i++) {
-      const Connection &current_connection = m_connections[i];
-      if (current_connection.enabled) {
-        m_nodes[current_connection.idx_node_out].add_to_value(
-            current_connection.weight *
-            m_nodes[current_connection.idx_node_in].activate());
-      }
-    }
-    std::array<double, NB_OUT_NODES> output;
-    for (unsigned int i = 0; i < NB_OUT_NODES; i++) {
-      output[i] = m_nodes[i + NB_IN_NODES].activate();
-    }
-    return output;
+    store_input(input);
+    activate_all_connections();
+    activate_last_layer();
+    return extract_output();
   }
 
   void print() { std::cout << informations() << std::endl; }
@@ -217,33 +108,55 @@ private:
     }
   }
 
+  inline std::array<double, NB_OUT_NODES> extract_output() const {
+    std::array<double, NB_OUT_NODES> output;
+    for (unsigned int i = 0; i < NB_OUT_NODES; i++) {
+      output[i] = m_nodes.at(i + NB_IN_NODES).value; // /!\ const correctness
+    }
+    return output;
+  }
+
+  inline void activate_last_layer() {
+    for (unsigned int i = 0; i < NB_OUT_NODES; i++) {
+      m_nodes[i + NB_IN_NODES].activate();
+    }
+  }
+
+  inline void store_input(std::array<double, NB_IN_NODES> input) {
+    for (unsigned int i = 0; i < NB_IN_NODES; i++) {
+      m_nodes[i].set_value(input[i]);
+    }
+  }
+
+  inline void activate_all_connections() {
+    for (const Connection &current_connection : m_connections) {
+      if (current_connection.enabled) {
+        m_nodes[current_connection.idx_node_out].add_to_value(
+            current_connection.weight *
+            m_nodes[current_connection.idx_node_in].activate());
+      }
+    }
+  }
+
   void add_random_node() {
     /* Selects a random connection and splits it in half by adding
      * a node in the middle.
      */
     unsigned int idx_new_node = NB_IN_NODES + NB_OUT_NODES + m_nb_hidden_nodes;
-    if (idx_new_node + 1 > MAX_BRAIN_SIZE) {
-      return;
-    }
-    if (m_nb_connections + 1 > MAX_NB_CONNECTIONS) {
-      return;
-    }
-    m_nodes[idx_new_node] = Node(0.);
+    m_nodes.emplace_back(0.); // small effect node
     m_nb_hidden_nodes++;
+
     unsigned int rnd_connection = rnd_int_smaller_than(m_nb_connections);
-    Connection new_connection(idx_new_node,
-                              m_connections[rnd_connection].idx_node_out, 1.);
-    m_connections[rnd_connection].idx_node_out = idx_new_node;
-    m_connections[m_nb_connections] = new_connection;
+    Connection &split_connection = m_connections[rnd_connection];
+    m_connections.emplace_back(idx_new_node, split_connection.idx_node_out,
+                               1.); // small effect connection
     m_nb_connections++;
+    split_connection.idx_node_out = idx_new_node; // modify the split one
     sort_connections();
   }
 
   void add_random_connection() {
     // add a random connection by selecting two nodes
-    if (m_nb_connections + 1 > MAX_NB_CONNECTIONS) {
-      return;
-    }
     unsigned int rnd_node_in_idx =
         rnd_int_smaller_than(NB_IN_NODES + m_nb_hidden_nodes);
     if (rnd_node_in_idx >= NB_IN_NODES) {
@@ -251,25 +164,32 @@ private:
     }
     unsigned int rnd_node_out_idx =
         NB_OUT_NODES + rnd_int_smaller_than(NB_OUT_NODES + m_nb_hidden_nodes);
+    if (rnd_node_in_idx == rnd_node_out_idx) {
+      return;
+    }
+
     // check whether the connection creates duplicates
-    bool is_new_connection = true;
-    for (unsigned int i = 0; i < m_nb_connections; i++) {
-      if (m_connections[i].idx_node_in == rnd_node_in_idx and
-          m_connections[i].idx_node_out == rnd_node_out_idx) {
-        is_new_connection = false;
+    bool is_new = true;
+    for (const Connection &connection : m_connections) {
+      if (connection.idx_node_in == rnd_node_in_idx and
+          connection.idx_node_out == rnd_node_out_idx) {
+        is_new = false;
       }
     }
-    if (is_new_connection and rnd_node_in_idx != rnd_node_out_idx) {
-      Connection new_connection(rnd_node_in_idx, rnd_node_out_idx);
-      m_connections[m_nb_connections] = new_connection;
-      m_nb_connections++;
-      // sort the brain
-      if (sort_connections()) {
-        return;
-      }
-      // otherwise, it means that the brain is not possible
-      m_nb_connections--;
+    if (!is_new) {
+      return;
     }
+
+    m_connections.emplace_back(rnd_node_in_idx, rnd_node_out_idx, 1.);
+    m_nb_connections++;
+
+    // sort the brain
+    if (sort_connections()) {
+      return;
+    }
+    // otherwise, it means that the brain is not possible
+    m_connections.pop_back();
+    m_nb_connections--;
   }
 
   void toggle_random_connection() {
@@ -288,9 +208,10 @@ private:
     m_nodes[rnd_node].mutate(factor);
   }
 
+  // TODO: needs to check
   bool sort_connections() {
     std::vector<Connection> connections_to_treat;
-    std::array<Connection, MAX_NB_CONNECTIONS> storing_area;
+    std::vector<Connection> storing_area;
     for (unsigned int i = 0; i < m_nb_connections; i++) {
       connections_to_treat.push_back(m_connections[i]);
       storing_area[i] = m_connections[i];
