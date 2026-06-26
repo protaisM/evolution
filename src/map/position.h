@@ -3,6 +3,10 @@
 #include <cmath>
 #include <ostream>
 
+inline double rand_angle() {
+  return 2 * M_PI * ((double)rand() / (double)RAND_MAX);
+}
+
 struct Position {
   double x;
   double y;
