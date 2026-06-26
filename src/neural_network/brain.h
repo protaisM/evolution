@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cassert>
 #include <deque>
 #include <iostream>
 #include <string>
@@ -14,25 +15,21 @@ template <unsigned int NB_IN_NODES, unsigned int NB_OUT_NODES> class Brain {
 private:
   std::vector<Node> m_nodes;
   std::vector<Connection> m_connections;
-  unsigned int m_nb_hidden_nodes;
-  unsigned int m_nb_connections;
 
 public:
-  Brain(unsigned int nb_hidden_nodes = 0) : m_nb_hidden_nodes(nb_hidden_nodes) {
+  Brain(unsigned int nb_hidden_nodes = 0) {
     /* The node layout is the following:
      * m_nodes = [ input_nodes, output_nodes, hidden_nodes ]
      */
-    unsigned int total_nb_nodes =
-        NB_IN_NODES + NB_OUT_NODES + m_nb_hidden_nodes;
+    unsigned int total_nb_nodes = NB_IN_NODES + NB_OUT_NODES + nb_hidden_nodes;
     for (unsigned int i = 0; i < total_nb_nodes; i++) {
       m_nodes.emplace_back(); // default constructor
     }
 
     // create all connections, one for each output node
-    m_nb_connections = NB_OUT_NODES;
     for (unsigned int i = 0; i < NB_OUT_NODES; i++) {
       unsigned int rnd_node_idx =
-          rnd_int_smaller_than(NB_IN_NODES + m_nb_hidden_nodes);
+          rnd_int_smaller_than(NB_IN_NODES + nb_hidden_nodes);
       if (rnd_node_idx >= NB_IN_NODES) { // skip the out nodes
         rnd_node_idx += NB_OUT_NODES;
       }
@@ -41,17 +38,18 @@ public:
   }
 
   std::array<double, NB_OUT_NODES>
-  activate(std::array<double, NB_IN_NODES> input) {
+  activate(std::array<double, NB_IN_NODES> const &input) {
+    // m_connections is always sorted by design of add_new*
     set_to_zero();
     store_input(input);
-    activate_all_connections();
-    activate_last_layer();
+    propagate();
+    activate_output();
     return extract_output();
   }
 
-  void print() { std::cout << informations() << std::endl; }
+  void print() { std::cout << information() << std::endl; }
 
-  std::string informations() const {
+  std::string information() const {
     std::string result;
     result += "Nodes:\n";
     for (unsigned int i = 0; i < NB_IN_NODES; i++) {
@@ -59,8 +57,7 @@ public:
     }
     result += "\n";
     unsigned int hidden_node_beginning = NB_IN_NODES + NB_OUT_NODES;
-    for (unsigned int i = hidden_node_beginning;
-         i < hidden_node_beginning + m_nb_hidden_nodes; i++) {
+    for (unsigned int i = hidden_node_beginning; i < m_nodes.size(); i++) {
       result += "(" + std::to_string(m_nodes[i].get_value()) + ")";
     }
     result += "\n";
@@ -68,7 +65,7 @@ public:
       result += "(" + std::to_string(m_nodes[i].get_value()) + ")";
     }
     result += "\nConnections:\n";
-    for (unsigned int i = 0; i < m_nb_connections; i++) {
+    for (unsigned int i = 0; i < m_connections.size(); i++) {
       result += "(" + std::to_string(m_connections[i].idx_node_in) + ") --> (" +
                 std::to_string(m_connections[i].idx_node_out) + ")\n";
     }
@@ -88,7 +85,7 @@ public:
     }
 
     // topological mutations
-    if (rand_0_1() < 0.01) {
+    if (rand_0_1() < 0.02) {
       add_random_connection();
     }
     if (rand_0_1() < 0.01) {
@@ -106,27 +103,31 @@ private:
     }
   }
 
+  unsigned int nb_hidden_nodes() const {
+    return m_nodes.size() - NB_OUT_NODES - NB_IN_NODES;
+  }
+
   inline std::array<double, NB_OUT_NODES> extract_output() const {
     std::array<double, NB_OUT_NODES> output;
     for (unsigned int i = 0; i < NB_OUT_NODES; i++) {
-      output[i] = m_nodes.at(i + NB_IN_NODES).value; // /!\ const correctness
+      output[i] = m_nodes[i + NB_IN_NODES].get_value();
     }
     return output;
   }
 
-  inline void activate_last_layer() {
+  inline void activate_output() {
     for (unsigned int i = 0; i < NB_OUT_NODES; i++) {
       m_nodes[i + NB_IN_NODES].activate();
     }
   }
 
-  inline void store_input(std::array<double, NB_IN_NODES> input) {
+  inline void store_input(std::array<double, NB_IN_NODES> const &input) {
     for (unsigned int i = 0; i < NB_IN_NODES; i++) {
       m_nodes[i].set_value(input[i]);
     }
   }
 
-  inline void activate_all_connections() {
+  inline void propagate() {
     for (const Connection &current_connection : m_connections) {
       if (current_connection.enabled) {
         m_nodes[current_connection.idx_node_out].add_to_value(
@@ -136,50 +137,51 @@ private:
     }
   }
 
+  inline unsigned int rnd_connection_idx() const {
+    return rnd_int_smaller_than(m_connections.size());
+  }
+
+  inline unsigned int rnd_node_idx() const {
+    return rnd_int_smaller_than(m_nodes.size());
+  }
+
   void add_random_node() {
     /* Selects a random connection and splits it in half by adding
      * a node in the middle.
      */
-    unsigned int idx_new_node = NB_IN_NODES + NB_OUT_NODES + m_nb_hidden_nodes;
+    unsigned int idx_new_node = m_nodes.size();
     m_nodes.emplace_back(0.); // small effect node
-    m_nb_hidden_nodes++;
 
-    unsigned int rnd_connection = rnd_int_smaller_than(m_nb_connections);
+    unsigned int rnd_connection = rnd_connection_idx();
     m_connections.emplace_back(idx_new_node,
                                m_connections[rnd_connection].idx_node_out,
                                1.); // small effect connection
-    m_nb_connections++;
     m_connections[rnd_connection].idx_node_out = idx_new_node;
-    sort_connections();
+    assert(sort_connections()); // should never fail
   }
 
   void add_random_connection() {
     // add a random connection by selecting two nodes
     unsigned int rnd_node_in_idx =
-        rnd_int_smaller_than(NB_IN_NODES + m_nb_hidden_nodes);
+        rnd_int_smaller_than(NB_IN_NODES + nb_hidden_nodes());
     if (rnd_node_in_idx >= NB_IN_NODES) {
       rnd_node_in_idx += NB_OUT_NODES;
     }
     unsigned int rnd_node_out_idx =
-        NB_OUT_NODES + rnd_int_smaller_than(NB_OUT_NODES + m_nb_hidden_nodes);
+        NB_OUT_NODES + rnd_int_smaller_than(NB_OUT_NODES + nb_hidden_nodes());
     if (rnd_node_in_idx == rnd_node_out_idx) {
       return;
     }
 
     // check whether the connection creates duplicates
-    bool is_new = true;
     for (const Connection &connection : m_connections) {
       if (connection.idx_node_in == rnd_node_in_idx and
           connection.idx_node_out == rnd_node_out_idx) {
-        is_new = false;
+        return; // abort
       }
-    }
-    if (!is_new) {
-      return;
     }
 
     m_connections.emplace_back(rnd_node_in_idx, rnd_node_out_idx, 1.);
-    m_nb_connections++;
 
     // sort the brain
     if (sort_connections()) {
@@ -187,22 +189,20 @@ private:
     }
     // otherwise, it means that the brain is not possible
     m_connections.pop_back();
-    m_nb_connections--;
   }
 
   void toggle_random_connection() {
-    unsigned int rnd_connection = rnd_int_smaller_than(m_nb_connections);
+    unsigned int rnd_connection = rnd_connection_idx();
     m_connections[rnd_connection].toggle_enabled();
   }
 
   void change_connection_weight(double factor) {
-    unsigned int rnd_connection = rnd_int_smaller_than(m_nb_connections);
+    unsigned int rnd_connection = rnd_connection_idx();
     m_connections[rnd_connection].mutate(factor);
   }
 
   void mutate_random_node(double factor) {
-    unsigned int rnd_node =
-        rnd_int_smaller_than(m_nb_hidden_nodes + NB_IN_NODES + NB_OUT_NODES);
+    unsigned int rnd_node = rnd_node_idx();
     m_nodes[rnd_node].mutate(factor);
   }
 
@@ -212,15 +212,15 @@ private:
     std::deque<Connection> to_treat;
     std::vector<Connection> sorted_arr;
 
-    for (unsigned int i = 0; i < m_nb_connections; i++) {
+    for (unsigned int i = 0; i < m_connections.size(); i++) {
       to_treat.push_back(m_connections[i]);
     }
 
     Connection current_connection;
     unsigned int nb_tries = 0; // trial counter
 
-    while (!to_treat.empty()               // there is still connections to sort
-           and nb_tries < m_nb_connections // to avoid cycles
+    while (!to_treat.empty() // there is still connections to sort
+           and nb_tries < m_connections.size() // to avoid cycles
     ) {
 
       current_connection = to_treat.front(); // take the first one to treat

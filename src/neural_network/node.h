@@ -17,6 +17,6 @@ struct Node {
     value += x;
     return value;
   }
-  double activate() { return std::tanh(value + bias); }
+  double activate() const { return std::tanh(value + bias); }
   void mutate(double factor) { bias += 0.25 * factor * rand_normal(); }
 };
