@@ -29,48 +29,48 @@ inline double rand_normal() {
 
 inline double relu(double x) { return std::max(x, 0.0); }
 
-class Node {
-private:
-  double m_value;
-  // TODO bias double here and not on connection
+struct Node {
+  double value;
+  double bias;
 
-public:
-  void init() { m_value = 0; }
-  double get_value() const { return m_value; }
-  void set_value(double x) { m_value = x; }
+  Node() : value(0), bias(0.01 * (((double)rand() / RAND_MAX) * 2 - 1)) {}
+  Node(double b) : value(0), bias(b) {}
+
+  void init() { value = 0; }
+  double get_value() const { return value; }
+  void set_value(double x) { value = x; }
   double add_to_value(double x) {
-    m_value += x;
-    return m_value;
+    value += x;
+    return value;
   }
+  double activate() { return std::tanh(value + bias); }
+  void mutate(double factor) { bias += 0.25 * factor * rand_normal(); }
 };
 
 struct Connection {
   double weight;
-  double shift;
   unsigned int idx_node_in;
   unsigned int idx_node_out;
-  // TODO: bool enabled
+  bool enabled;
 
   Connection(unsigned int node_in, unsigned int node_out) {
     idx_node_in = node_in;
     idx_node_out = node_out;
     weight = 0.2 * (((double)rand() / RAND_MAX) * 2 - 1);
-    shift = 0.01 * (((double)rand() / RAND_MAX) * 2 - 1);
+    enabled = true;
   }
 
-  Connection(unsigned int node_in, unsigned int node_out, double w, double b) {
+  Connection(unsigned int node_in, unsigned int node_out, double w) {
     idx_node_in = node_in;
     idx_node_out = node_out;
     weight = w;
-    shift = b;
+    enabled = true;
   }
 
   Connection() {}
 
-  void mutate(double factor) {
-    weight += factor * rand_normal();
-    shift += 0.25 * factor * rand_normal();
-  }
+  void mutate(double factor) { weight += factor * rand_normal(); }
+  void toggle_enabled() { enabled = !enabled; }
 };
 
 template <unsigned int NB_IN_NODES, unsigned int NB_OUT_NODES,
@@ -147,14 +147,15 @@ public:
     }
     for (unsigned int i = 0; i < m_nb_connections; i++) {
       const Connection &current_connection = m_connections[i];
-      m_nodes[current_connection.idx_node_out].add_to_value(
-          current_connection.weight *
-              std::tanh(m_nodes[current_connection.idx_node_in].get_value()) +
-          current_connection.shift);
+      if (current_connection.enabled) {
+        m_nodes[current_connection.idx_node_out].add_to_value(
+            current_connection.weight *
+            m_nodes[current_connection.idx_node_in].activate());
+      }
     }
     std::array<double, NB_OUT_NODES> output;
     for (unsigned int i = 0; i < NB_OUT_NODES; i++) {
-      output[i] = std::tanh(m_nodes[i + NB_IN_NODES].get_value());
+      output[i] = m_nodes[i + NB_IN_NODES].activate();
     }
     return output;
   }
@@ -189,13 +190,20 @@ public:
     // small mutation
     if (rand_0_1() < 0.9) {
       change_connection_weight(0.05);
+      mutate_random_node(0.05);
     }
     // sometimes, big ones
     if (rand_0_1() < 0.1) {
       change_connection_weight(0.5);
+      mutate_random_node(0.5);
     }
+
+    // topological mutations
     if (rand_0_1() < 0.01) {
       add_random_connection();
+    }
+    if (rand_0_1() < 0.01) {
+      toggle_random_connection();
     }
     if (rand_0_1() < 0.005) {
       add_random_node();
@@ -220,10 +228,11 @@ private:
     if (m_nb_connections + 1 > MAX_NB_CONNECTIONS) {
       return;
     }
+    m_nodes[idx_new_node] = Node(0.);
     m_nb_hidden_nodes++;
     unsigned int rnd_connection = rnd_int_smaller_than(m_nb_connections);
-    Connection new_connection(
-        idx_new_node, m_connections[rnd_connection].idx_node_out, 1., 0);
+    Connection new_connection(idx_new_node,
+                              m_connections[rnd_connection].idx_node_out, 1.);
     m_connections[rnd_connection].idx_node_out = idx_new_node;
     m_connections[m_nb_connections] = new_connection;
     m_nb_connections++;
@@ -263,20 +272,20 @@ private:
     }
   }
 
-  void remove_random_connection() {
-    if (m_nb_connections <= 1) {
-      return;
-    }
+  void toggle_random_connection() {
     unsigned int rnd_connection = rnd_int_smaller_than(m_nb_connections);
-    for (unsigned int i = rnd_connection; i < m_nb_connections; i++) {
-      m_connections[i] = m_connections[i + 1];
-    }
-    m_nb_connections--;
+    m_connections[rnd_connection].toggle_enabled();
   }
 
   void change_connection_weight(double factor) {
     unsigned int rnd_connection = rnd_int_smaller_than(m_nb_connections);
     m_connections[rnd_connection].mutate(factor);
+  }
+
+  void mutate_random_node(double factor) {
+    unsigned int rnd_node =
+        rnd_int_smaller_than(m_nb_hidden_nodes + NB_IN_NODES + NB_OUT_NODES);
+    m_nodes[rnd_node].mutate(factor);
   }
 
   bool sort_connections() {
