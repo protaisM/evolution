@@ -17,12 +17,8 @@
 #include <string>
 #include <vector>
 
-inline double rand_pos() { return (double)std::rand() / ((double)RAND_MAX); }
-inline double rand_angle() { return 2 * M_PI * rand_pos(); }
 
-template <unsigned int NB_IN_NODES, unsigned int NB_OUT_NODES,
-          unsigned int MAX_BRAIN_SIZE, unsigned int MAX_NB_CONNECTIONS>
-class BaseMouse {
+template <unsigned int NB_IN_NODES, unsigned int NB_OUT_NODES> class BaseMouse {
 
 protected:
   //---------------------------------------------------------------//
@@ -35,7 +31,7 @@ protected:
   //---------------------------------------------------------------//
 
 protected:
-  Brain<NB_IN_NODES, NB_OUT_NODES, MAX_BRAIN_SIZE, MAX_NB_CONNECTIONS> m_brain;
+  Brain<NB_IN_NODES, NB_OUT_NODES> m_brain;
   Map *m_map;
   // note that positions and velocity are normalised to 1
   PositionAngle m_state;
@@ -50,10 +46,12 @@ protected:
   unsigned int m_nb_lifes = 1;
   std::vector<unsigned int> m_consumed_food;
 
+  double m_fitness;
+
 public:
   BaseMouse(Map *map)
       : m_brain(), m_map(map), m_state({map->rnd_position(), rand_angle()}),
-        m_velocity(0), m_is_alive(true) {
+        m_velocity(0), m_is_alive(true), m_fitness(100) {
     m_sight_radius = rand_0_1();
   }
 
@@ -64,6 +62,7 @@ public:
   double get_angle() const { return m_state.angle; }
   void set_angle(double angle) { m_state.angle = std::fmod(angle, 2 * M_PI); }
   bool is_alive() const { return m_is_alive; }
+  void add_to_fitness(double x) { m_fitness += x; }
 
   bool has_consumed(unsigned int id) {
     return std::find(m_consumed_food.begin(), m_consumed_food.end(), id) !=
@@ -88,8 +87,16 @@ public:
     m_nb_lifes = 1;
   }
 
-  void add_one_life(unsigned int id) {
+  bool consumes(unsigned int id) {
+    if (has_consumed(id)) {
+      return false;
+    }
     m_consumed_food.push_back(id);
+    return true;
+  }
+
+  void add_one_life(unsigned int id) {
+    consumes(id);
     m_nb_lifes += 100;
   }
 
@@ -255,7 +262,7 @@ public:
 };
 
 template <unsigned int NB_PREDATORS>
-class SimpleMouse : public BaseMouse<3 + 3 * NB_PREDATORS, 2, 30, 100> {
+class SimpleMouse : public BaseMouse<3 + 3 * NB_PREDATORS, 2> {
   /* A simple mouse has a small brain:
    * it can simply handle the distance to the predator,
    * and the angle at which it sees it. Of course it is also conscious
@@ -269,7 +276,7 @@ private:
   unsigned int static constexpr m_nb_input = 3 + 3 * NB_PREDATORS;
 
 public:
-  SimpleMouse(Map *map) : BaseMouse<m_nb_input, 2, 30, 100>(map) {}
+  SimpleMouse(Map *map) : BaseMouse<m_nb_input, 2>(map) {}
 
   SimpleMouse() : BaseMouse<m_nb_input, 2, 30, 100>() {}
 
@@ -320,7 +327,7 @@ protected:
 };
 
 template <unsigned int NB_PREDATORS>
-class MemoryMouse : public BaseMouse<3 + 2 * NB_PREDATORS, 3, 30, 150> {
+class MemoryMouse : public BaseMouse<3 + 2 * NB_PREDATORS, 3> {
   /* A memory mouse is a bit more complex:
    * we add a new input, a memory neuron, which
    * can store information. It therefore adds a input
@@ -330,15 +337,15 @@ class MemoryMouse : public BaseMouse<3 + 2 * NB_PREDATORS, 3, 30, 150> {
    */
 };
 
-class TimeRobot : public BaseMouse<1, 2, 30, 100> {
+class TimeRobot : public BaseMouse<1, 2> {
 
 private:
   double m_internal_clock;
 
 public:
-  TimeRobot(Map *map) : BaseMouse<1, 2, 30, 100>(map), m_internal_clock(0.0) {}
+  TimeRobot(Map *map) : BaseMouse<1, 2>(map), m_internal_clock(0.0) {}
 
-  TimeRobot() : BaseMouse<1, 2, 30, 100>(), m_internal_clock(0.0) {}
+  TimeRobot() : BaseMouse<1, 2>(), m_internal_clock(0.0) {}
 
   virtual std::string specific_informations() const override {
     std::string result;

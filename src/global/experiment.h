@@ -23,6 +23,8 @@
 #include <memory>
 #include <string>
 
+class ExperimentController;
+
 template <typename Mouse, unsigned int MICE_NUMBER> class Experiment {
 private:
   Map *m_map;
@@ -37,6 +39,8 @@ private:
   // parameters
   ExperimentParameters m_params;
   DisplayParameters m_display_parameters;
+
+  friend class ExperimentController;
 
 public:
   Experiment(Logger *log, Map *map, ExperimentParameters const &params,

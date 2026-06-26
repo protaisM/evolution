@@ -7,6 +7,8 @@ inline double rand_angle() {
   return 2 * M_PI * ((double)rand() / (double)RAND_MAX);
 }
 
+inline double rand_pos() { return (double)std::rand() / ((double)RAND_MAX); }
+
 struct Position {
   double x;
   double y;

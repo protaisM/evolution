@@ -117,3 +117,38 @@ public:
     }
   }
 };
+
+template <typename Mouse, unsigned int MICE_NUMBER>
+class FitnessFunction : public ExperimentRules<Mouse, MICE_NUMBER> {
+
+public:
+  void if_in_predator(Mouse &mouse, ExperimentParameters &params) override {
+    mouse.add_to_fitness(-1);
+  }
+
+  void if_eat_food(Mouse &mouse, Food const &food) override {
+    if (mouse.consumes(food.get_id())) {
+      mouse.add_to_fitness(10);
+    }
+  }
+
+  void if_outside_map(Mouse &mouse, ExperimentParameters &params) override {
+    mouse.add_to_fitness(-1);
+  }
+
+  // we end the generation if we have no enough mice, or if the time is over
+  bool condition_end_generation(ExperimentParameters &params) override {
+    return (params.time >= params.generation_duration);
+  }
+
+  void reproduce(std::array<Mouse, MICE_NUMBER> &mice,
+                 ExperimentParameters &params) override {
+    // default
+    params.generation++;
+    params.time = 0.;
+    // TODO: selection
+    for (Mouse &mouse : mice) {
+      mouse.mutate();
+    }
+  }
+};
