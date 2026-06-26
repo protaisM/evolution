@@ -1,10 +1,8 @@
 #pragma once
 
-#include <algorithm>
 #include <array>
-#include <cmath>
+#include <deque>
 #include <iostream>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -147,11 +145,11 @@ private:
     m_nb_hidden_nodes++;
 
     unsigned int rnd_connection = rnd_int_smaller_than(m_nb_connections);
-    Connection &split_connection = m_connections[rnd_connection];
-    m_connections.emplace_back(idx_new_node, split_connection.idx_node_out,
+    m_connections.emplace_back(idx_new_node,
+                               m_connections[rnd_connection].idx_node_out,
                                1.); // small effect connection
     m_nb_connections++;
-    split_connection.idx_node_out = idx_new_node; // modify the split one
+    m_connections[rnd_connection].idx_node_out = idx_new_node;
     sort_connections();
   }
 
@@ -208,38 +206,45 @@ private:
     m_nodes[rnd_node].mutate(factor);
   }
 
-  // TODO: needs to check
   bool sort_connections() {
-    std::vector<Connection> connections_to_treat;
-    std::vector<Connection> storing_area;
+    /* topological sort */
+
+    std::deque<Connection> to_treat;
+    std::vector<Connection> sorted_arr;
+
     for (unsigned int i = 0; i < m_nb_connections; i++) {
-      connections_to_treat.push_back(m_connections[i]);
-      storing_area[i] = m_connections[i];
+      to_treat.push_back(m_connections[i]);
     }
+
     Connection current_connection;
-    unsigned int current_idx = 0;
-    unsigned int nb_tries = 0;
-    while (!connections_to_treat.empty() and nb_tries < m_nb_connections) {
-      current_connection = connections_to_treat[0];
-      connections_to_treat.erase(connections_to_treat.begin());
+    unsigned int nb_tries = 0; // trial counter
+
+    while (!to_treat.empty()               // there is still connections to sort
+           and nb_tries < m_nb_connections // to avoid cycles
+    ) {
+
+      current_connection = to_treat.front(); // take the first one to treat
+      to_treat.pop_front();
+
       bool is_ordered = true;
-      for (Connection other_connection : connections_to_treat) {
+      for (const Connection &other_connection : to_treat) {
+        // check whether it can be inserted
         if (other_connection.idx_node_out == current_connection.idx_node_in) {
           is_ordered = false;
+          break;
         }
       }
       if (is_ordered) {
-        storing_area[current_idx] = current_connection;
-        current_idx++;
+        sorted_arr.push_back(current_connection); // insert
+        nb_tries = 0;                             // reset the trial counter
       } else {
-        connections_to_treat.push_back(current_connection);
+        to_treat.push_back(current_connection); // back in the queue
         nb_tries++;
       }
     }
-    if (connections_to_treat.empty()) {
-      for (unsigned int i = 0; i < m_nb_connections; i++) {
-        m_connections[i] = storing_area[i];
-      }
+
+    if (to_treat.empty()) {
+      m_connections = sorted_arr;
       return true;
     }
     return false;
