@@ -30,7 +30,26 @@ public:
     m_map_display_size = 940;
     m_logger = new Logger(title);
     m_map = new Square(1, false);
-    m_experiment = new Experiment<Mouse, MICE_NUMBER>(m_logger, m_map, 750);
+
+    ExperimentParameters params;
+    params.minimal_mice_number = 750;
+    params.generation_duration = 20;
+    params.nb_alive_mice = MICE_NUMBER;
+    params.dt = 0.005;
+    params.generation = 0;
+    params.time = 0;
+    params.randomized_spawning_point = false;
+    params.spawning_point = {0.5, 0.5};
+    params.spawning_angle = 0;
+
+    DisplayParameters display_params;
+    display_params.center_position = m_map->get_center();
+    display_params.selected_mouse = MICE_NUMBER - 1;
+    display_params.zoom = 1;
+    display_params.follow_mouse = false;
+
+    m_experiment = new Experiment<Mouse, MICE_NUMBER>(m_logger, m_map, params,
+                                                      display_params);
 
     m_window = new sf::RenderWindow(
         sf::VideoMode(sf::VideoMode::getDesktopMode().width,
