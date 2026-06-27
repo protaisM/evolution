@@ -13,7 +13,7 @@ struct Strat_Shape_Pair {
 
 class Level {
 public:
-  std::vector<std::unique_ptr<Predator::Predator>> m_predators;
+  std::vector<std::unique_ptr<Predator>> m_predators;
 
   Level(Map *map, unsigned int level_nb = 0) {
     PredatorFactory factory(map);

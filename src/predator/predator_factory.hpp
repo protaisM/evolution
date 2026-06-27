@@ -13,49 +13,41 @@ private:
 public:
   PredatorFactory(Map *map) : m_map(map) {}
 
-  std::unique_ptr<Predator::Predator> newCirclePredator(double radius,
-                                                        Position begin,
-                                                        Position end,
-                                                        double frequency) {
-    std::unique_ptr<Predator::Shape> shape =
-        std::make_unique<Predator::Circle>(m_map, radius);
-    std::unique_ptr<Predator::Strategy> strategy =
-        std::make_unique<Predator::FollowPath>(m_map, begin, end, frequency);
+  std::unique_ptr<Predator> newCirclePredator(double radius, Position begin,
+                                              Position end, double frequency) {
+    std::unique_ptr<PredatorShape> shape =
+        std::make_unique<CirclePredator>(m_map, radius);
+    std::unique_ptr<PredatorStrategy> strategy =
+        std::make_unique<FollowPath>(m_map, begin, end, frequency);
 
-    return std::make_unique<Predator::Predator>(std::move(shape),
-                                                std::move(strategy));
+    return std::make_unique<Predator>(std::move(shape), std::move(strategy));
   }
 
-  std::unique_ptr<Predator::Predator> newCirclePredator(double radius) {
-    std::unique_ptr<Predator::Shape> shape =
-        std::make_unique<Predator::Circle>(m_map, radius);
-    std::unique_ptr<Predator::Strategy> strategy =
-        std::make_unique<Predator::FollowPath>(m_map);
+  std::unique_ptr<Predator> newCirclePredator(double radius) {
+    std::unique_ptr<PredatorShape> shape =
+        std::make_unique<CirclePredator>(m_map, radius);
+    std::unique_ptr<PredatorStrategy> strategy =
+        std::make_unique<FollowPath>(m_map);
 
-    return std::make_unique<Predator::Predator>(std::move(shape),
-                                                std::move(strategy));
+    return std::make_unique<Predator>(std::move(shape), std::move(strategy));
   }
 
-  std::unique_ptr<Predator::Predator> newSquarePredator(double length,
-                                                        Position begin,
-                                                        Position end,
-                                                        double frequency) {
-    std::unique_ptr<Predator::Shape> shape =
-        std::make_unique<Predator::Rectangle>(m_map, length, length);
-    std::unique_ptr<Predator::Strategy> strategy =
-        std::make_unique<Predator::FollowPath>(m_map, begin, end, frequency);
+  std::unique_ptr<Predator> newSquarePredator(double length, Position begin,
+                                              Position end, double frequency) {
+    std::unique_ptr<PredatorShape> shape =
+        std::make_unique<RectanglePredator>(m_map, length, length);
+    std::unique_ptr<PredatorStrategy> strategy =
+        std::make_unique<FollowPath>(m_map, begin, end, frequency);
 
-    return std::make_unique<Predator::Predator>(std::move(shape),
-                                                std::move(strategy));
+    return std::make_unique<Predator>(std::move(shape), std::move(strategy));
   }
 
-  std::unique_ptr<Predator::Predator> newSquarePredator(double length) {
-    std::unique_ptr<Predator::Shape> shape =
-        std::make_unique<Predator::Rectangle>(m_map, length, length);
-    std::unique_ptr<Predator::Strategy> strategy =
-        std::make_unique<Predator::FollowPath>(m_map);
+  std::unique_ptr<Predator> newSquarePredator(double length) {
+    std::unique_ptr<PredatorShape> shape =
+        std::make_unique<RectanglePredator>(m_map, length, length);
+    std::unique_ptr<PredatorStrategy> strategy =
+        std::make_unique<FollowPath>(m_map);
 
-    return std::make_unique<Predator::Predator>(std::move(shape),
-                                                std::move(strategy));
+    return std::make_unique<Predator>(std::move(shape), std::move(strategy));
   }
 };

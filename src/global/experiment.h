@@ -45,8 +45,8 @@ private:
 public:
   Experiment(Logger *log, Map *map, ExperimentParameters const &params,
              DisplayParameters display_params)
-      : m_map(map), m_logger(log), m_params(params),
-        m_display_parameters(display_params), m_level(map, 1) {
+      : m_map(map), m_logger(log), m_level(map, 1), m_params(params),
+        m_display_parameters(display_params) {
 
     // reproduction strategy
     m_experiment_rules = std::make_unique<KillingMice<Mouse, MICE_NUMBER>>();
@@ -81,8 +81,7 @@ public:
                                is_selected_mouse);
       }
     }
-    for (std::unique_ptr<Predator::Predator> const &predator :
-         m_level.m_predators) {
+    for (std::unique_ptr<Predator> const &predator : m_level.m_predators) {
       predator->draw(window, offset, m_display_parameters.zoom * map_size);
     }
     for (Food const &food : m_food) {
@@ -94,8 +93,7 @@ public:
   void do_one_step() {
     m_params.time = m_params.time + m_params.dt;
     std::vector<PositionAngle> predators_states;
-    for (std::unique_ptr<Predator::Predator> const &predator :
-         m_level.m_predators) {
+    for (std::unique_ptr<Predator> const &predator : m_level.m_predators) {
       predator->do_one_step(m_params.dt);
       predators_states.push_back(predator->get_state());
     }
@@ -107,8 +105,7 @@ public:
       if (outside_the_map) {
         m_experiment_rules->if_outside_map(mouse, m_params);
       }
-      for (std::unique_ptr<Predator::Predator> const &predator :
-           m_level.m_predators) {
+      for (std::unique_ptr<Predator> const &predator : m_level.m_predators) {
         if (predator->is_in_predator(mouse.get_position())) {
           m_experiment_rules->if_in_predator(mouse, m_params);
         }
@@ -127,8 +124,7 @@ public:
                     m_params.time / m_params.generation_duration,
                     (double)m_params.nb_alive_mice / (double)MICE_NUMBER);
     m_experiment_rules->reproduce(m_mice, m_params);
-    for (std::unique_ptr<Predator::Predator> const &predator :
-         m_level.m_predators) {
+    for (std::unique_ptr<Predator> const &predator : m_level.m_predators) {
       predator->start_of_the_round();
     }
   }

@@ -2,6 +2,7 @@
 
 #include "experiment_parameter.h"
 #include "food.h"
+#include "helper_brain.h"
 
 #include <array>
 #include <iostream>

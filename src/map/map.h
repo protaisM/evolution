@@ -67,12 +67,12 @@ protected:
   }
 };
 
-class Square : public Map {
+class SquareMap : public Map {
 private:
   double m_side_length;
 
 public:
-  Square(double side_length, bool has_boundary = true)
+  SquareMap(double side_length, bool has_boundary = true)
       : m_side_length(side_length) {
     m_has_safe_boundary = has_boundary;
   }
@@ -136,12 +136,12 @@ public:
   }
 };
 
-class Circle : public Map {
+class CircleMap : public Map {
 private:
   double m_diameter;
 
 public:
-  Circle(double diameter, bool has_boundary = true) : m_diameter(diameter) {
+  CircleMap(double diameter, bool has_boundary = true) : m_diameter(diameter) {
     m_has_safe_boundary = has_boundary;
   }
 

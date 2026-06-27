@@ -29,7 +29,7 @@ public:
     m_title = title;
     m_map_display_size = 940;
     m_logger = new Logger(title);
-    m_map = new Square(1, false);
+    m_map = new SquareMap(1, false);
 
     ExperimentParameters params;
     params.minimal_mice_number = 750;

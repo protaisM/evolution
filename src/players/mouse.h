@@ -278,7 +278,7 @@ private:
 public:
   SimpleMouse(Map *map) : BaseMouse<m_nb_input, 2>(map) {}
 
-  SimpleMouse() : BaseMouse<m_nb_input, 2, 30, 100>() {}
+  SimpleMouse() : BaseMouse<m_nb_input, 2>() {}
 
 protected:
   virtual std::string specific_informations() const override {

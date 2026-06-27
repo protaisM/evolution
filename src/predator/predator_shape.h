@@ -26,12 +26,12 @@ public:
   PredatorShape(Map *map) : m_map(map) {}
 };
 
-class Circle : public PredatorShape {
+class CirclePredator : public PredatorShape {
 private:
   double m_radius;
 
 public:
-  Circle(Map *map, double radius = 0.1) : PredatorShape(map), m_radius(radius) {}
+  CirclePredator(Map *map, double radius = 0.1) : PredatorShape(map), m_radius(radius) {}
 
   bool is_in(Position pos_predator, Position pos) const override {
     if (m_map->distance(pos, pos_predator) < m_radius) {
@@ -51,13 +51,13 @@ public:
   }
 };
 
-class Rectangle : public PredatorShape {
+class RectanglePredator : public PredatorShape {
 private:
   double m_x_length;
   double m_y_length;
 
 public:
-  Rectangle(Map *map, double x_length, double y_length)
+  RectanglePredator(Map *map, double x_length, double y_length)
       : PredatorShape(map), m_x_length(x_length), m_y_length(y_length) {}
 
   bool is_in(Position pos_predator, Position pos) const override {
