@@ -11,12 +11,12 @@ int main() {
       std::cout << x << " -> " << y[0] << '\n';
     }
     brain.print();
+
     std::cout << "After mutation" << std::endl;
-    brain.mutate();
-    for (double x = 0; x <= 2; x += 0.1) {
-      auto y = brain.activate({x});
-      std::cout << x << " -> " << y[0] << '\n';
+    for (int j = 0; j < 500; j++) {
+      brain.mutate();
     }
+    brain.activate({1});
     brain.print();
   }
 

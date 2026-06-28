@@ -4,8 +4,22 @@
 #include "food.h"
 #include "helper_brain.h"
 
+#include <algorithm>
 #include <array>
 #include <iostream>
+
+template <std::size_t size>
+unsigned int get_corresponding_index(double rnd,
+                                     std::array<double, size> norm_fitness) {
+  std::cout << "rnd = " << rnd << std::endl;
+  unsigned int result = 0;
+  double sum = norm_fitness[0];
+  while (rnd > sum) {
+    result++;
+    sum += norm_fitness[result];
+  }
+  return result;
+}
 
 template <typename Mouse, unsigned int MICE_NUMBER> class ExperimentRules {
 public:
@@ -123,17 +137,19 @@ template <typename Mouse, unsigned int MICE_NUMBER>
 class FitnessFunction : public ExperimentRules<Mouse, MICE_NUMBER> {
 
 public:
-  void if_in_predator(Mouse &mouse, ExperimentParameters &params) override {
+  void if_in_predator(Mouse &mouse,
+                      ExperimentParameters & /*params*/) override {
     mouse.add_to_fitness(-1);
   }
 
   void if_eat_food(Mouse &mouse, Food const &food) override {
     if (mouse.consumes(food.get_id())) {
-      mouse.add_to_fitness(10);
+      mouse.add_to_fitness(100);
     }
   }
 
-  void if_outside_map(Mouse &mouse, ExperimentParameters &params) override {
+  void if_outside_map(Mouse &mouse,
+                      ExperimentParameters & /*params*/) override {
     mouse.add_to_fitness(-1);
   }
 
@@ -147,9 +163,44 @@ public:
     // default
     params.generation++;
     params.time = 0.;
-    // TODO: selection
+
+    std::array<Mouse, MICE_NUMBER> old_mice = mice;
+    // sort by fitness
+    std::sort(old_mice.begin(), old_mice.end(),
+              [](const Mouse &a, const Mouse &b) {
+                return a.get_fitness() > b.get_fitness();
+              });
+
+    const double elitism = 0.1;
+    const std::size_t elites = std::max<std::size_t>(
+        1, static_cast<std::size_t>(elitism * MICE_NUMBER));
+
+    for (unsigned int i = 0; i < elites; i++) {
+      mice[i] = old_mice[i];
+    }
+
+    // tournament selection
+    for (unsigned int i = elites; i < MICE_NUMBER; i++) {
+      unsigned int best_mouse = rnd_int_smaller_than(mice.size());
+      for (unsigned int j = 0; j < 4; j++) {
+        unsigned int contender = rnd_int_smaller_than(mice.size());
+        if (old_mice[contender].get_fitness() >
+            old_mice[best_mouse].get_fitness()) {
+          best_mouse = contender;
+        }
+      }
+      mice[i] = old_mice[best_mouse];
+      mice[i].mutate();
+    }
+
     for (Mouse &mouse : mice) {
-      mouse.mutate();
+      if (params.randomized_spawning_point) {
+        mouse.randomize_position();
+      } else {
+        mouse.set_position(params.spawning_point);
+        mouse.set_angle(params.spawning_angle);
+        mouse.resurrect();
+      }
     }
   }
 };

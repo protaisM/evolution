@@ -45,11 +45,12 @@ private:
 public:
   Experiment(Logger *log, Map *map, ExperimentParameters const &params,
              DisplayParameters display_params)
-      : m_map(map), m_logger(log), m_level(map, 1), m_params(params),
+      : m_map(map), m_logger(log), m_level(map, 2), m_params(params),
         m_display_parameters(display_params) {
 
     // reproduction strategy
-    m_experiment_rules = std::make_unique<KillingMice<Mouse, MICE_NUMBER>>();
+    m_experiment_rules =
+        std::make_unique<FitnessFunction<Mouse, MICE_NUMBER>>();
 
     // mice
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
@@ -120,11 +121,15 @@ public:
     if (!m_experiment_rules->condition_end_generation(m_params)) {
       return;
     }
-    m_logger->store(m_params.generation,
-                    m_params.time / m_params.generation_duration,
-                    (double)m_params.nb_alive_mice / (double)MICE_NUMBER);
+    double avg_fitness = 0;
+    for (Mouse const &mouse : m_mice) {
+      avg_fitness += mouse.get_fitness();
+    }
+    m_logger->store(
+        m_params.generation, m_params.time / m_params.generation_duration,
+        (double)m_params.nb_alive_mice / (double)MICE_NUMBER, avg_fitness);
     m_experiment_rules->reproduce(m_mice, m_params);
-    for (Mouse & mouse : m_mice) {
+    for (Mouse &mouse : m_mice) {
       mouse.start_of_round();
     }
     for (std::unique_ptr<Predator> const &predator : m_level.m_predators) {
@@ -136,7 +141,7 @@ public:
 
   void add_to_generation_duration(double dg) {
     m_params.generation_duration =
-        std::max(10., m_params.generation_duration + dg);
+        std::max(1., m_params.generation_duration + dg);
   }
 
   void add_to_minimal_mice_number(double dn) {

@@ -29,18 +29,18 @@ public:
     m_title = title;
     m_map_display_size = 940;
     m_logger = new Logger(title);
-    m_map = new SquareMap(1, false);
+    m_map = new SquareMap(1, true);
 
     ExperimentParameters params;
     params.minimal_mice_number = 750;
-    params.generation_duration = 20;
+    params.generation_duration = 3;
     params.nb_alive_mice = MICE_NUMBER;
     params.dt = 0.005;
     params.generation = 0;
     params.time = 0;
     params.randomized_spawning_point = false;
-    params.spawning_point = {0.5, 0.5};
-    params.spawning_angle = 0;
+    params.spawning_point = {0.05, 0.95};
+    params.spawning_angle = -M_PI / 4;
 
     DisplayParameters display_params;
     display_params.center_position = m_map->get_center();
@@ -50,6 +50,9 @@ public:
 
     m_experiment = new Experiment<Mouse, MICE_NUMBER>(m_logger, m_map, params,
                                                       display_params);
+    for (unsigned int i = 0; i < 10; i++) {
+      m_experiment->add_food();
+    }
 
     m_window = new sf::RenderWindow(
         sf::VideoMode(sf::VideoMode::getDesktopMode().width,
@@ -120,16 +123,19 @@ private:
         m_experiment->add_to_dt(+0.005);
       }
       if (evnt.key.code == sf::Keyboard::Up) {
-        m_experiment->add_to_generation_duration(10);
+        m_experiment->add_to_generation_duration(1);
       }
       if (evnt.key.code == sf::Keyboard::Down) {
-        m_experiment->add_to_generation_duration(-10);
+        m_experiment->add_to_generation_duration(-1);
       }
       if (evnt.key.code == sf::Keyboard::Right) {
         m_experiment->add_to_minimal_mice_number(10);
       }
       if (evnt.key.code == sf::Keyboard::Left) {
         m_experiment->add_to_minimal_mice_number(-10);
+      }
+      if (evnt.key.code == sf::Keyboard::F) {
+        m_experiment->add_food();
       }
       break;
     default:

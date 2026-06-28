@@ -18,7 +18,7 @@ private:
   std::vector<Connection> m_connections;
 
 public:
-  Brain(unsigned int nb_hidden_nodes = 0) {
+  Brain(unsigned int nb_hidden_nodes = 0, bool dense = true) {
     /* The node layout is the following:
      * m_nodes = [ input_nodes, output_nodes, hidden_nodes ]
      */
@@ -27,14 +27,31 @@ public:
       m_nodes.emplace_back(); // default constructor
     }
 
-    // create all connections, one for each output node
-    for (unsigned int i = 0; i < NB_OUT_NODES; i++) {
-      unsigned int rnd_node_idx =
-          rnd_int_smaller_than(NB_IN_NODES + nb_hidden_nodes);
-      if (rnd_node_idx >= NB_IN_NODES) { // skip the out nodes
-        rnd_node_idx += NB_OUT_NODES;
+    if (dense) {
+      // dense is here a loosely defined term
+      for (unsigned int i = 0; i < NB_IN_NODES; i++) { // from input
+        for (unsigned int j = NB_IN_NODES; j < total_nb_nodes;
+             j++) { // to all others
+          m_connections.emplace_back(i, j);
+        }
       }
-      m_connections.emplace_back(rnd_node_idx, NB_IN_NODES + i);
+      for (unsigned int j = NB_IN_NODES; j < NB_IN_NODES + NB_OUT_NODES;
+           j++) { // to output
+        for (unsigned int i = NB_IN_NODES + NB_OUT_NODES; i < total_nb_nodes;
+             i++) { // from hidden
+          m_connections.emplace_back(i, j);
+        }
+      }
+    } else {
+      // create one connection for each output node
+      for (unsigned int i = 0; i < NB_OUT_NODES; i++) {
+        unsigned int rnd_node_idx =
+            rnd_int_smaller_than(NB_IN_NODES + nb_hidden_nodes);
+        if (rnd_node_idx >= NB_IN_NODES) { // skip the out nodes
+          rnd_node_idx += NB_OUT_NODES;
+        }
+        m_connections.emplace_back(rnd_node_idx, NB_IN_NODES + i);
+      }
     }
     sort_connections(); // for safety
     check_connections();
@@ -90,13 +107,13 @@ public:
     }
 
     // topological mutations
-    if (rand_0_1() < 0.02) {
+    if (rand_0_1() < 0.04) {
       add_random_connection();
     }
-    if (rand_0_1() < 0.01) {
+    if (rand_0_1() < 0.02) {
       toggle_random_connection();
     }
-    if (rand_0_1() < 0.005) {
+    if (rand_0_1() < 0.02) {
       add_random_node();
     }
     check_connections(); // safety
@@ -107,7 +124,18 @@ private:
     for (const auto &c : m_connections) {
       if (c.idx_node_in == c.idx_node_out) {
         std::cout << information() << std::endl;
-        throw std::runtime_error("Self-loop created: check-connection failed");
+        throw std::runtime_error("Self-loop (A)->(A): check_connection failed");
+      }
+      if (c.idx_node_out < NB_IN_NODES) {
+        std::cout << information() << std::endl;
+        throw std::runtime_error(
+            "Connection towards input node: check_connection failed");
+      }
+      if (c.idx_node_in < NB_IN_NODES + NB_OUT_NODES and
+          c.idx_node_in >= NB_IN_NODES) {
+        std::cout << information() << std::endl;
+        throw std::runtime_error(
+            "Connection from output node: check_connection failed");
       }
     }
   }
@@ -212,8 +240,11 @@ private:
   }
 
   void change_connection_weight(double factor) {
-    unsigned int rnd_connection = rnd_connection_idx();
-    m_connections[rnd_connection].mutate(factor);
+    for (Connection &c : m_connections) {
+      if (rand_0_1() < 0.1) {
+        c.mutate(factor);
+      }
+    }
   }
 
   void mutate_random_node(double factor) {

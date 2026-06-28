@@ -34,6 +34,15 @@ public:
           factory.newCirclePredator(0.1, {0.85, 0.15}, {0.15, 0.15}, 2));
       break;
     }
+    case 2: {
+      // m_predators.push_back(
+      //     factory.newSquarePredator(0.3, {-0.5, 1.5}, {0.1, 0.9}, 1));
+      // for (unsigned int i = 0; i < 4; i++) {
+      //   m_predators.push_back(factory.newCirclePredator(0.1));
+      // }
+
+      break;
+    }
     default: {
       for (unsigned int i = 0; i < 5; i++) {
         m_predators.push_back(factory.newCirclePredator(0.1));

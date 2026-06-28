@@ -14,6 +14,7 @@
 #include <array>
 #include <cmath>
 #include <cstdlib>
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -50,14 +51,15 @@ protected:
 
 public:
   BaseMouse(Map *map)
-      : m_brain(), m_map(map), m_state({map->rnd_position(), rand_angle()}),
-        m_velocity(0), m_is_alive(true), m_fitness(100) {
+      : m_brain(3), m_map(map), m_state({map->rnd_position(), rand_angle()}),
+        m_velocity(0), m_is_alive(true), m_fitness(1000) {
     m_sight_radius = rand_0_1();
   }
 
   BaseMouse() : m_is_alive(false) {}
 
   Position get_position() const { return m_state.position; }
+  double get_fitness() const { return m_fitness; }
   void set_position(Position const &pos) { m_state.position = pos; }
   double get_angle() const { return m_state.angle; }
   void set_angle(double angle) { m_state.angle = std::fmod(angle, 2 * M_PI); }
@@ -70,6 +72,8 @@ public:
   }
 
   bool kill() {
+    std::cout << "kill a mouse " << std::endl;
+    throw std::runtime_error("killed");
     if (!m_is_alive) {
       return false;
     }
@@ -162,7 +166,7 @@ protected:
     } else if (m_map->has_safe_boundary()) {
       m_state.position = m_map->project_on_map(next_pos);
     } else {
-      kill();
+      m_state.position = next_pos;
       return false;
     }
     return true;
@@ -349,7 +353,10 @@ public:
 
   TimeRobot() : BaseMouse<1, 2>(), m_internal_clock(0.0) {}
 
-  virtual void start_of_round() override { m_internal_clock = 0; }
+  virtual void start_of_round() override {
+    m_internal_clock = 0;
+    m_fitness = 1000;
+  }
 
   virtual std::string specific_informations() const override {
     std::string result;
