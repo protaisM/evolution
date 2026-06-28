@@ -4,6 +4,7 @@
 #include <cassert>
 #include <deque>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -35,11 +36,15 @@ public:
       }
       m_connections.emplace_back(rnd_node_idx, NB_IN_NODES + i);
     }
+    sort_connections(); // for safety
+    check_connections();
   }
 
   std::array<double, NB_OUT_NODES>
   activate(std::array<double, NB_IN_NODES> const &input) {
     // m_connections is always sorted by design of add_new*
+    check_connections();
+
     set_to_zero();
     store_input(input);
     propagate();
@@ -94,9 +99,19 @@ public:
     if (rand_0_1() < 0.005) {
       add_random_node();
     }
+    check_connections(); // safety
   }
 
 private:
+  void check_connections() const { // debug
+    for (const auto &c : m_connections) {
+      if (c.idx_node_in == c.idx_node_out) {
+        std::cout << information() << std::endl;
+        throw std::runtime_error("Self-loop created: check-connection failed");
+      }
+    }
+  }
+
   void set_to_zero() {
     for (Node &node : m_nodes) {
       node.init();
@@ -157,7 +172,7 @@ private:
                                m_connections[rnd_connection].idx_node_out,
                                1.); // small effect connection
     m_connections[rnd_connection].idx_node_out = idx_new_node;
-    assert(sort_connections()); // should never fail
+    assert(sort_connections());
   }
 
   void add_random_connection() {
@@ -168,7 +183,7 @@ private:
       rnd_node_in_idx += NB_OUT_NODES;
     }
     unsigned int rnd_node_out_idx =
-        NB_OUT_NODES + rnd_int_smaller_than(NB_OUT_NODES + nb_hidden_nodes());
+        NB_IN_NODES + rnd_int_smaller_than(NB_OUT_NODES + nb_hidden_nodes());
     if (rnd_node_in_idx == rnd_node_out_idx) {
       return;
     }
@@ -208,6 +223,8 @@ private:
 
   bool sort_connections() {
     /* topological sort */
+
+    check_connections(); // shouldn't sort if loop
 
     std::deque<Connection> to_treat;
     std::vector<Connection> sorted_arr;

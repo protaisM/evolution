@@ -17,7 +17,6 @@
 #include <string>
 #include <vector>
 
-
 template <unsigned int NB_IN_NODES, unsigned int NB_OUT_NODES> class BaseMouse {
 
 protected:
@@ -26,6 +25,7 @@ protected:
   virtual void
   update_angle_and_velocity(std::vector<PositionAngle> predators_states,
                             double dt) = 0;
+  virtual void start_of_round() = 0;
 
   virtual std::string specific_informations() const = 0;
   //---------------------------------------------------------------//
@@ -280,6 +280,8 @@ public:
 
   SimpleMouse() : BaseMouse<m_nb_input, 2>() {}
 
+  virtual void start_of_round() override {}
+
 protected:
   virtual std::string specific_informations() const override {
     std::string result;
@@ -346,6 +348,8 @@ public:
   TimeRobot(Map *map) : BaseMouse<1, 2>(map), m_internal_clock(0.0) {}
 
   TimeRobot() : BaseMouse<1, 2>(), m_internal_clock(0.0) {}
+
+  virtual void start_of_round() override { m_internal_clock = 0; }
 
   virtual std::string specific_informations() const override {
     std::string result;

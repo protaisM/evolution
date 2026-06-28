@@ -124,6 +124,9 @@ public:
                     m_params.time / m_params.generation_duration,
                     (double)m_params.nb_alive_mice / (double)MICE_NUMBER);
     m_experiment_rules->reproduce(m_mice, m_params);
+    for (Mouse & mouse : m_mice) {
+      mouse.start_of_round();
+    }
     for (std::unique_ptr<Predator> const &predator : m_level.m_predators) {
       predator->start_of_the_round();
     }
