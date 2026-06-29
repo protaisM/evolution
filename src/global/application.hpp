@@ -12,12 +12,12 @@
 
 enum Screen_type { FULL, ONLY_MAP, ONLY_LEGEND, EMPTY };
 
-template <typename Mouse, unsigned int MICE_NUMBER> class Application {
+template <typename Mouse> class Application {
 private:
   std::string m_title;
   sf::RenderWindow *m_window;
-  Experiment<Mouse, MICE_NUMBER> *m_experiment;
-  ExperimentDisplay<Mouse, MICE_NUMBER> m_experiment_display;
+  Experiment<Mouse> *m_experiment;
+  ExperimentDisplay<Mouse> m_experiment_display;
   Logger *m_logger;
   Map *m_map;
 
@@ -34,8 +34,9 @@ public:
 
     ExperimentParameters params;
     params.minimal_mice_number = 750;
+    params.maximal_mice_number = 1000;
     params.generation_duration = 3;
-    params.nb_alive_mice = MICE_NUMBER;
+    params.nb_alive_mice = 1000;
     params.dt = 0.005;
     params.generation = 0;
     params.time = 0;
@@ -45,14 +46,12 @@ public:
 
     DisplayParameters display_params;
     display_params.center_position = m_map->get_center();
-    display_params.selected_mouse = MICE_NUMBER - 1;
+    display_params.selected_mouse = params.maximal_mice_number - 1;
     display_params.zoom = 1;
     display_params.follow_mouse = false;
 
-    m_experiment_display =
-        ExperimentDisplay<Mouse, MICE_NUMBER>(display_params);
-
-    m_experiment = new Experiment<Mouse, MICE_NUMBER>(m_logger, m_map, params);
+    m_experiment_display = ExperimentDisplay<Mouse>(display_params);
+    m_experiment = new Experiment<Mouse>(m_logger, m_map, params);
 
     m_window = new sf::RenderWindow(
         sf::VideoMode(sf::VideoMode::getDesktopMode().width,
@@ -88,6 +87,7 @@ private:
   void full_dispay() {
     sf::Vector2f offset({5.0f, 5.0f});
     m_window->clear(sf::Color::Black);
+    m_map->draw(m_window, offset, m_map_display_size);
     m_experiment_display.draw(*m_experiment, m_window, offset,
                               m_map_display_size);
     m_experiment_display.draw_legend(*m_experiment, m_window, offset);

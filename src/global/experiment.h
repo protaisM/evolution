@@ -26,35 +26,33 @@
 
 class ExperimentController;
 
-template <typename Player, unsigned int PLAYER_NUMBER> class IExperiment {};
+template <typename Player> class IExperiment {};
 
-template <typename Mouse, unsigned int MICE_NUMBER>
-class Experiment : public IExperiment<Mouse, MICE_NUMBER> {
+template <typename Mouse> class Experiment : public IExperiment<Mouse> {
 private:
   Logger *const m_logger;
 
-  std::unique_ptr<ExperimentRules<Mouse, MICE_NUMBER>> m_experiment_rules;
+  std::unique_ptr<ExperimentRules<Mouse>> m_experiment_rules;
   Level m_level;
 
-  std::array<Mouse, MICE_NUMBER> m_mice;
+  std::vector<Mouse> m_mice;
 
   // parameters
   ExperimentParameters m_params;
 
   friend class ExperimentController;
-  friend class ExperimentDisplay<Mouse, MICE_NUMBER>;
+  friend class ExperimentDisplay<Mouse>;
 
 public:
   Experiment(Logger *log, Map *map, ExperimentParameters const &params)
       : m_logger(log), m_level(map, 2), m_params(params) {
 
     // reproduction strategy
-    m_experiment_rules =
-        std::make_unique<FitnessFunction<Mouse, MICE_NUMBER>>();
+    m_experiment_rules = std::make_unique<FitnessFunction<Mouse>>();
 
     // mice
-    for (unsigned int i = 0; i < MICE_NUMBER; i++) {
-      m_mice[i] = Mouse(map);
+    for (unsigned int i = 0; i < m_params.maximal_mice_number; i++) {
+      m_mice.emplace_back(map);
       if (!m_params.randomized_spawning_point) {
         m_mice[i].set_position(m_params.spawning_point);
         m_mice[i].set_angle(m_params.spawning_angle);
@@ -97,14 +95,15 @@ public:
     double avg_fitness = 0;
     double max_fitness = 0;
     for (Mouse const &mouse : m_mice) {
-      avg_fitness += mouse.get_fitness() / MICE_NUMBER;
+      avg_fitness += mouse.get_fitness() / m_params.maximal_mice_number;
       if (mouse.get_fitness() > max_fitness) {
         max_fitness = mouse.get_fitness();
       }
     }
     m_logger->store(
         m_params.generation, m_params.time / m_params.generation_duration,
-        (double)m_params.nb_alive_mice / (double)MICE_NUMBER, max_fitness);
+        (double)m_params.nb_alive_mice / (double)m_params.maximal_mice_number,
+        max_fitness);
     m_experiment_rules->reproduce(m_mice, m_params);
     for (Mouse &mouse : m_mice) {
       mouse.start_of_round();

@@ -12,6 +12,7 @@ struct ExperimentParameters {
   double dt;
   unsigned int nb_alive_mice;
   unsigned int minimal_mice_number;
+  unsigned int maximal_mice_number;
 
   bool randomized_spawning_point;
   Position spawning_point;
