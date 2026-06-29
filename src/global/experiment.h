@@ -1,6 +1,7 @@
 #pragma once
 
 #include "display_parameter.h"
+#include "experiment_display.h"
 #include "experiment_parameter.h"
 #include "experiment_rules.h"
 #include "food.h"
@@ -25,28 +26,27 @@
 
 class ExperimentController;
 
-template <typename Mouse, unsigned int MICE_NUMBER> class Experiment {
+template <typename Player, unsigned int PLAYER_NUMBER> class IExperiment {};
+
+template <typename Mouse, unsigned int MICE_NUMBER>
+class Experiment : public IExperiment<Mouse, MICE_NUMBER> {
 private:
-  Map *m_map;
   Logger *const m_logger;
 
   std::unique_ptr<ExperimentRules<Mouse, MICE_NUMBER>> m_experiment_rules;
   Level m_level;
 
   std::array<Mouse, MICE_NUMBER> m_mice;
-  std::vector<Food> m_food;
 
   // parameters
   ExperimentParameters m_params;
-  DisplayParameters m_display_parameters;
 
   friend class ExperimentController;
+  friend class ExperimentDisplay<Mouse, MICE_NUMBER>;
 
 public:
-  Experiment(Logger *log, Map *map, ExperimentParameters const &params,
-             DisplayParameters display_params)
-      : m_map(map), m_logger(log), m_level(map, 2), m_params(params),
-        m_display_parameters(display_params) {
+  Experiment(Logger *log, Map *map, ExperimentParameters const &params)
+      : m_logger(log), m_level(map, 2), m_params(params) {
 
     // reproduction strategy
     m_experiment_rules =
@@ -54,7 +54,7 @@ public:
 
     // mice
     for (unsigned int i = 0; i < MICE_NUMBER; i++) {
-      m_mice[i] = Mouse(m_map);
+      m_mice[i] = Mouse(map);
       if (!m_params.randomized_spawning_point) {
         m_mice[i].set_position(m_params.spawning_point);
         m_mice[i].set_angle(m_params.spawning_angle);
@@ -63,33 +63,6 @@ public:
   }
 
   ~Experiment() = default;
-
-  void add_food() { m_food.emplace_back(m_map, m_map->rnd_position()); }
-  void add_food(Position position) { m_food.emplace_back(m_map, position); }
-
-  void draw(sf::RenderWindow *window, sf::Vector2f offset,
-            float map_size) const {
-    sf::RectangleShape background(sf::Vector2f({map_size, map_size}));
-    background.setPosition(offset);
-    background.setFillColor(sf::Color({80, 80, 80}));
-    window->draw(background);
-    for (size_t idx_mouse = 0; idx_mouse < MICE_NUMBER; idx_mouse++) {
-      if (m_mice[idx_mouse].is_alive()) {
-        bool is_selected_mouse =
-            (m_display_parameters.selected_mouse == idx_mouse);
-        m_mice[idx_mouse].draw(window, offset,
-                               m_display_parameters.zoom * map_size,
-                               is_selected_mouse);
-      }
-    }
-    for (std::unique_ptr<Predator> const &predator : m_level.m_predators) {
-      predator->draw(window, offset, m_display_parameters.zoom * map_size);
-    }
-    for (Food const &food : m_food) {
-      food.draw(window, offset, m_display_parameters.zoom * map_size);
-    }
-    m_map->draw(window, offset, map_size);
-  }
 
   void do_one_step() {
     m_params.time = m_params.time + m_params.dt;
@@ -111,7 +84,7 @@ public:
           m_experiment_rules->if_in_predator(mouse, m_params);
         }
       }
-      for (Food const &food : m_food) {
+      for (Food const &food : m_level.m_food) {
         if (food.can_eat(mouse.get_position())) {
           m_experiment_rules->if_eat_food(mouse, food);
         }
@@ -122,12 +95,16 @@ public:
       return;
     }
     double avg_fitness = 0;
+    double max_fitness = 0;
     for (Mouse const &mouse : m_mice) {
-      avg_fitness += mouse.get_fitness();
+      avg_fitness += mouse.get_fitness() / MICE_NUMBER;
+      if (mouse.get_fitness() > max_fitness) {
+        max_fitness = mouse.get_fitness();
+      }
     }
     m_logger->store(
         m_params.generation, m_params.time / m_params.generation_duration,
-        (double)m_params.nb_alive_mice / (double)MICE_NUMBER, avg_fitness);
+        (double)m_params.nb_alive_mice / (double)MICE_NUMBER, max_fitness);
     m_experiment_rules->reproduce(m_mice, m_params);
     for (Mouse &mouse : m_mice) {
       mouse.start_of_round();
@@ -147,23 +124,5 @@ public:
   void add_to_minimal_mice_number(double dn) {
     m_params.minimal_mice_number =
         std::max(10., m_params.minimal_mice_number + dn);
-  }
-
-  void draw_legend(sf::RenderWindow *window, sf::Vector2f offset) const {
-    sf::Text legend;
-    legend.setFont(m_display_parameters.font);
-    std::string text_legend = " Gen " + std::to_string(m_params.generation) +
-                              " Mice " +
-                              std::to_string(m_params.nb_alive_mice) + " (" +
-                              std::to_string(m_params.minimal_mice_number) +
-                              ") / " + std::to_string(MICE_NUMBER) + "\n";
-    text_legend += " Time " + std::to_string(m_params.time) + " (+" +
-                   std::to_string(m_params.dt) + ") / " +
-                   std::to_string(m_params.generation_duration) + "\n";
-    legend.setString(text_legend);
-    legend.setFillColor(sf::Color::White);
-    legend.setPosition(offset);
-    legend.setCharacterSize(20);
-    window->draw(legend);
   }
 };

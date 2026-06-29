@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "food.h"
 #include "map.h"
 #include "predator.h"
 #include "predator_factory.hpp"
@@ -14,6 +15,7 @@ struct Strat_Shape_Pair {
 class Level {
 public:
   std::vector<std::unique_ptr<Predator>> m_predators;
+  std::vector<Food> m_food;
 
   Level(Map *map, unsigned int level_nb = 0) {
     PredatorFactory factory(map);
@@ -35,11 +37,9 @@ public:
       break;
     }
     case 2: {
-      // m_predators.push_back(
-      //     factory.newSquarePredator(0.3, {-0.5, 1.5}, {0.1, 0.9}, 1));
-      // for (unsigned int i = 0; i < 4; i++) {
-      //   m_predators.push_back(factory.newCirclePredator(0.1));
-      // }
+      for (unsigned int i = 0; i < 20; i++) {
+        m_food.emplace_back(map, map->rnd_position());
+      }
 
       break;
     }

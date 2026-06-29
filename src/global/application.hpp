@@ -17,6 +17,7 @@ private:
   std::string m_title;
   sf::RenderWindow *m_window;
   Experiment<Mouse, MICE_NUMBER> *m_experiment;
+  ExperimentDisplay<Mouse, MICE_NUMBER> m_experiment_display;
   Logger *m_logger;
   Map *m_map;
 
@@ -48,11 +49,10 @@ public:
     display_params.zoom = 1;
     display_params.follow_mouse = false;
 
-    m_experiment = new Experiment<Mouse, MICE_NUMBER>(m_logger, m_map, params,
-                                                      display_params);
-    for (unsigned int i = 0; i < 10; i++) {
-      m_experiment->add_food();
-    }
+    m_experiment_display =
+        ExperimentDisplay<Mouse, MICE_NUMBER>(display_params);
+
+    m_experiment = new Experiment<Mouse, MICE_NUMBER>(m_logger, m_map, params);
 
     m_window = new sf::RenderWindow(
         sf::VideoMode(sf::VideoMode::getDesktopMode().width,
@@ -88,8 +88,9 @@ private:
   void full_dispay() {
     sf::Vector2f offset({5.0f, 5.0f});
     m_window->clear(sf::Color::Black);
-    m_experiment->draw(m_window, offset, m_map_display_size);
-    m_experiment->draw_legend(m_window, offset);
+    m_experiment_display.draw(*m_experiment, m_window, offset,
+                              m_map_display_size);
+    m_experiment_display.draw_legend(*m_experiment, m_window, offset);
     m_logger->plot(m_window, offset + sf::Vector2f({m_map_display_size, 0.0f}),
                    {sf::VideoMode::getDesktopMode().width - m_map_display_size,
                     (float)sf::VideoMode::getDesktopMode().height});
@@ -133,9 +134,6 @@ private:
       }
       if (evnt.key.code == sf::Keyboard::Left) {
         m_experiment->add_to_minimal_mice_number(-10);
-      }
-      if (evnt.key.code == sf::Keyboard::F) {
-        m_experiment->add_food();
       }
       break;
     default:

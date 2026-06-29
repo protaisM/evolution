@@ -144,7 +144,7 @@ public:
 
   void if_eat_food(Mouse &mouse, Food const &food) override {
     if (mouse.consumes(food.get_id())) {
-      mouse.add_to_fitness(100);
+      mouse.add_to_fitness(10);
     }
   }
 

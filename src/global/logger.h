@@ -25,11 +25,12 @@ private:
   // end of the day
   std::vector<double> m_generation_duration; // in [0,1]
   std::vector<double> m_survival_rate;       // in [0,1]
+  std::vector<double> m_avg_fitness;
 
 public:
   Logger(std::string title) { m_file = title; }
   void store(unsigned int generation_number, double generation_duration,
-             double survival_rate) {
+             double survival_rate, double avg_fitness) {
     m_generation_number.push_back(generation_number);
     if (generation_duration > 1) {
       generation_duration = 1;
@@ -39,6 +40,7 @@ public:
     }
     m_generation_duration.push_back(generation_duration);
     m_survival_rate.push_back(survival_rate);
+    m_avg_fitness.push_back(avg_fitness);
   }
 
   void write_to_file() {
@@ -58,7 +60,16 @@ public:
                   {offset.x, offset.y + offset_height},
                   {size.x, height_per_plot});
     offset_height = height_per_plot;
-    plot_quantity(window, m_generation_duration, "Generation duration",
+    // plot_quantity(window, m_generation_duration, "Generation duration",
+    //               {offset.x, offset.y + offset_height},
+    //               {size.x, height_per_plot});
+    // offset_height += height_per_plot;
+    std::vector<double> fitness_to_plot;
+    for (unsigned int i = 0; i < m_avg_fitness.size(); i++) {
+      // std::cout << m_avg_fitness[i] << std::endl;
+      fitness_to_plot.push_back(m_avg_fitness[i] / 100);
+    }
+    plot_quantity(window, fitness_to_plot, "Average fitness",
                   {offset.x, offset.y + offset_height},
                   {size.x, height_per_plot});
   }
@@ -92,7 +103,13 @@ private:
         sf::Vertex(offset + size, outline_color),
         sf::Vertex(offset + sf::Vector2f({0.0f, size.y}), outline_color),
         sf::Vertex(offset, outline_color)};
-    unsigned int nb_data_point = m_generation_number.size() - 1;
+
+    unsigned int nb_data_point = quantity.size() - 1;
+    // std::cout << nb_data_point << std::endl;
+    if (nb_data_point < 2) {
+      return;
+    }
+
     double zoom_width = size.x / (nb_data_point - 1);
     zoom_width = std::min(zoom_width, 10.);
     double zoom_height = size.y;
