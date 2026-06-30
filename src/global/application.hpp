@@ -33,20 +33,18 @@ public:
     m_map = new SquareMap(1, true);
 
     ExperimentParameters params;
-    params.minimal_mice_number = 750;
     params.maximal_mice_number = 1000;
-    params.generation_duration = 3;
-    params.nb_alive_mice = 1000;
+    params.generation_duration = 10;
     params.dt = 0.005;
     params.generation = 0;
     params.time = 0;
     params.randomized_spawning_point = false;
-    params.spawning_point = {0.05, 0.95};
+    params.spawning_point = {0.5, 0.5};
     params.spawning_angle = -M_PI / 4;
 
     DisplayParameters display_params;
     display_params.center_position = m_map->get_center();
-    display_params.selected_mouse = params.maximal_mice_number - 1;
+    display_params.selected_mouse = 0;
     display_params.zoom = 1;
     display_params.follow_mouse = false;
 
@@ -87,10 +85,10 @@ private:
   void full_dispay() {
     sf::Vector2f offset({5.0f, 5.0f});
     m_window->clear(sf::Color::Black);
-    m_map->draw(m_window, offset, m_map_display_size);
     m_experiment_display.draw(*m_experiment, m_window, offset,
                               m_map_display_size);
     m_experiment_display.draw_legend(*m_experiment, m_window, offset);
+    m_map->draw(m_window, offset, m_map_display_size);
     m_logger->plot(m_window, offset + sf::Vector2f({m_map_display_size, 0.0f}),
                    {sf::VideoMode::getDesktopMode().width - m_map_display_size,
                     (float)sf::VideoMode::getDesktopMode().height});
@@ -107,33 +105,13 @@ private:
         m_display = FULL;
       }
       if (evnt.key.code == sf::Keyboard::Num2) {
-        m_display = ONLY_MAP;
-      }
-      if (evnt.key.code == sf::Keyboard::Num3) {
-        m_display = ONLY_LEGEND;
-        window->clear();
-      }
-      if (evnt.key.code == sf::Keyboard::Num4) {
         m_display = EMPTY;
-        window->clear();
       }
       if (evnt.key.code == sf::Keyboard::J) {
         m_experiment->add_to_dt(-0.005);
       }
       if (evnt.key.code == sf::Keyboard::K) {
         m_experiment->add_to_dt(+0.005);
-      }
-      if (evnt.key.code == sf::Keyboard::Up) {
-        m_experiment->add_to_generation_duration(1);
-      }
-      if (evnt.key.code == sf::Keyboard::Down) {
-        m_experiment->add_to_generation_duration(-1);
-      }
-      if (evnt.key.code == sf::Keyboard::Right) {
-        m_experiment->add_to_minimal_mice_number(10);
-      }
-      if (evnt.key.code == sf::Keyboard::Left) {
-        m_experiment->add_to_minimal_mice_number(-10);
       }
       break;
     default:

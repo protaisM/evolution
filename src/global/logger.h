@@ -48,14 +48,16 @@ public:
     m_generation_number.push_back(generation_number);
 
     m_max_fitness.push_back(*std::max_element(fitness.begin(), fitness.end()));
-    m_max_fitness.push_back(*std::min_element(fitness.begin(), fitness.end()));
-    m_avg_fitness.push_back(std::accumulate(fitness.begin(), fitness.end(), 0) /
-                            (double)fitness.size());
-    m_avg_brain_connections.push_back(
-        std::accumulate(brain_connections.begin(), brain_connections.end(), 0) /
-        (double)brain_connections.size());
+    m_min_fitness.push_back(*std::min_element(fitness.begin(), fitness.end()));
+    m_avg_fitness.push_back(
+        std::accumulate(fitness.begin(), fitness.end(), 0.) /
+        (double)fitness.size());
+    m_avg_brain_connections.push_back(std::accumulate(brain_connections.begin(),
+                                                      brain_connections.end(),
+                                                      0.) /
+                                      (double)brain_connections.size());
     m_avg_brain_nodes.push_back(
-        std::accumulate(brain_nodes.begin(), brain_nodes.end(), 0) /
+        std::accumulate(brain_nodes.begin(), brain_nodes.end(), 0.) /
         (double)brain_nodes.size());
   }
 
@@ -79,15 +81,22 @@ public:
     plot_quantity(window, m_avg_fitness, "Average fitness",
                   {offset.x, offset.y + offset_height},
                   {size.x, height_per_plot});
-    offset_height = height_per_plot;
+    offset_height += height_per_plot;
+    plot_quantity(window, m_max_fitness, "Max fitness",
+                  {offset.x, offset.y + offset_height},
+                  {size.x, height_per_plot});
+    offset_height += height_per_plot;
+    plot_quantity(window, m_min_fitness, "Min fitness",
+                  {offset.x, offset.y + offset_height},
+                  {size.x, height_per_plot});
+    offset_height += height_per_plot;
     plot_quantity(window, m_avg_brain_nodes, "Average number of nodes",
                   {offset.x, offset.y + offset_height},
                   {size.x, height_per_plot});
-
     offset_height += height_per_plot;
-    plot_quantity(window, m_avg_brain_connections, "Average number of connections",
-                  {offset.x, offset.y + offset_height},
-                  {size.x, height_per_plot});
+    plot_quantity(
+        window, m_avg_brain_connections, "Average number of connections",
+        {offset.x, offset.y + offset_height}, {size.x, height_per_plot});
   }
 
 private:

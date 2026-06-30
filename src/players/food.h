@@ -16,7 +16,7 @@ private:
   double m_radius;
 
 public:
-  Food(Map *map, Position position, double radius = 0.01)
+  Food(Map *map, Position position, double radius = 0.05)
       : m_map(map), m_position(position), m_radius(radius) {
     if (radius <= 0) {
       throw std::runtime_error("Invalid food radius");

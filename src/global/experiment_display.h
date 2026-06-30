@@ -36,11 +36,14 @@ public:
       if (experiment.m_mice[idx_mouse].is_alive()) {
         bool is_selected_mouse =
             (m_display_parameters.selected_mouse == idx_mouse);
-        experiment.m_mice[idx_mouse].draw(window, offset,
-                                          m_display_parameters.zoom * map_size,
-                                          is_selected_mouse);
+        if (!is_selected_mouse) {
+          experiment.m_mice[idx_mouse].draw(
+              window, offset, m_display_parameters.zoom * map_size, false);
+        }
       }
     }
+    experiment.m_mice[m_display_parameters.selected_mouse].draw(
+        window, offset, m_display_parameters.zoom * map_size, true);
     for (std::unique_ptr<Predator> const &predator :
          experiment.m_level.m_predators) {
       predator->draw(window, offset, m_display_parameters.zoom * map_size);
@@ -56,8 +59,6 @@ public:
     legend.setFont(m_display_parameters.font);
     std::string text_legend =
         " Gen " + std::to_string(experiment.m_params.generation) + " Mice " +
-        std::to_string(experiment.m_params.nb_alive_mice) + " (" +
-        std::to_string(experiment.m_params.minimal_mice_number) + ") / " +
         std::to_string(experiment.m_params.maximal_mice_number) + "\n";
     text_legend += " Time " + std::to_string(experiment.m_params.time) + " (+" +
                    std::to_string(experiment.m_params.dt) + ") / " +

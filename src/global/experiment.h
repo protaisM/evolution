@@ -1,8 +1,8 @@
 #pragma once
 
 #include "experiment_display.h"
+#include "experiment_helper.h"
 #include "experiment_parameter.h"
-#include "experiment_rules.h"
 #include "food.h"
 #include "level.h"
 #include "logger.h"
@@ -10,26 +10,24 @@
 #include "position.h"
 
 #include <cstring>
-#include <memory>
 
 class ExperimentController;
 
 template <typename Mouse> class Experiment {
-private:
-  Logger *const m_logger;
-  std::unique_ptr<ExperimentRules<Mouse>> m_experiment_rules;
-  Level m_level;
-  std::vector<Mouse> m_mice;
-  ExperimentParameters m_params;
 
   friend class ExperimentController;
   friend class ExperimentDisplay<Mouse>;
 
+private:
+  std::vector<Mouse> m_mice;
+  Level m_level;
+  ExperimentParameters m_params;
+  Logger *const m_logger;
+
 public:
   Experiment(Logger *log, Map *map, ExperimentParameters const &params)
-      : m_logger(log), m_level(map, 2), m_params(params) {
-    m_experiment_rules = std::make_unique<FitnessFunction<Mouse>>();
-    for (unsigned int i = 0; i < m_params.maximal_mice_number; i++) {
+      : m_level(map, 2), m_params(params), m_logger(log) {
+    for (std::size_t i = 0; i < m_params.maximal_mice_number; i++) {
       m_mice.emplace_back(map);
     }
     start_of_the_round();
@@ -49,49 +47,43 @@ public:
       if (!mouse.is_alive()) {
         continue;
       }
-      bool outside_the_map = !mouse.advance(m_params.dt, predators_states);
+      bool outside_the_map = !mouse.advance(m_params, predators_states);
       if (outside_the_map) {
-        m_experiment_rules->if_outside_map(mouse, m_params);
+        mouse.add_to_fitness(-1);
       }
       for (std::unique_ptr<Predator> const &predator : m_level.m_predators) {
         if (predator->is_in_predator(mouse.get_position())) {
-          m_experiment_rules->if_in_predator(mouse, m_params);
+          mouse.add_to_fitness(-1);
         }
       }
       for (Food const &food : m_level.m_food) {
         if (food.can_eat(mouse.get_position())) {
-          m_experiment_rules->if_eat_food(mouse, food);
+          if (mouse.consumes(food.get_id())) {
+            mouse.add_to_fitness(10);
+          }
         }
       }
     }
 
-    if (!m_experiment_rules->condition_end_generation(m_params)) {
-      return;
+    if (m_params.time >= m_params.generation_duration) {
+      end_of_generation();
     }
-    send_to_logger();
-    m_experiment_rules->reproduce(m_mice, m_params);
-    start_of_the_round();
   }
 
   void add_to_dt(double dt) { m_params.dt = std::max(0.005, m_params.dt + dt); }
 
-  void add_to_generation_duration(double dg) {
-    m_params.generation_duration =
-        std::max(1., m_params.generation_duration + dg);
-  }
-
-  void add_to_minimal_mice_number(double dn) {
-    m_params.minimal_mice_number =
-        std::max(10., m_params.minimal_mice_number + dn);
-  }
-
 private:
   void start_of_the_round() {
+    m_params.generation++;
+    m_params.time = 0.;
+
     for (Mouse &mouse : m_mice) {
       mouse.start_of_round();
       if (!m_params.randomized_spawning_point) {
         mouse.set_position(m_params.spawning_point);
         mouse.set_angle(m_params.spawning_angle);
+      } else {
+        mouse.randomize_position();
       }
     }
     for (std::unique_ptr<Predator> const &predator : m_level.m_predators) {
@@ -99,8 +91,13 @@ private:
     }
   }
 
-  void send_to_logger() {
+  void end_of_generation() {
+    send_to_logger();
+    reproduce(m_mice);
+    start_of_the_round();
+  }
 
+  void send_to_logger() {
     std::vector<double> fitness;
     std::vector<double> brain_connection;
     std::vector<double> brain_nodes;

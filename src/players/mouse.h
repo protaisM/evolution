@@ -3,6 +3,7 @@
 #include "brain.h"
 #include "color.h"
 #include "eggshape.hpp"
+#include "experiment_parameter.h"
 #include "map.h"
 #include "position.h"
 
@@ -25,7 +26,7 @@ protected:
   // virtual functions, every subclass should implement these
   virtual void
   update_angle_and_velocity(std::vector<PositionAngle> predators_states,
-                            double dt) = 0;
+                            ExperimentParameters const &params) = 0;
   virtual void start_of_round() = 0;
 
   virtual std::string specific_informations() const = 0;
@@ -52,12 +53,16 @@ protected:
 public:
   BaseMouse(Map *map)
       : m_brain(3), m_map(map), m_state({map->rnd_position(), rand_angle()}),
-        m_velocity(0), m_is_alive(true), m_fitness(1000) {
+        m_velocity(0), m_is_alive(true), m_fitness(0) {
     m_sight_radius = rand_0_1();
   }
 
   BaseMouse() : m_is_alive(false) {}
 
+  std::size_t get_connections_number() const {
+    return m_brain.nb_connections();
+  }
+  std::size_t get_nodes_number() const { return m_brain.nb_nodes(); }
   Position get_position() const { return m_state.position; }
   double get_fitness() const { return m_fitness; }
   void set_position(Position const &pos) { m_state.position = pos; }
@@ -134,9 +139,10 @@ public:
     return result;
   }
 
-  bool advance(double dt, std::vector<PositionAngle> predators_states) {
-    update_angle_and_velocity(predators_states, dt);
-    return update_position(dt);
+  bool advance(ExperimentParameters const &params,
+               std::vector<PositionAngle> predators_states) {
+    update_angle_and_velocity(predators_states, params);
+    return update_position(params.dt);
   }
 
   void mutate() {
@@ -295,7 +301,7 @@ protected:
 
   virtual void
   update_angle_and_velocity(std::vector<PositionAngle> predators_states,
-                            double dt) override {
+                            ExperimentParameters const &params) override {
     std::sort(
         predators_states.begin(), predators_states.end(),
         [this](const PositionAngle &lhs, const PositionAngle &rhs) {
@@ -327,7 +333,7 @@ protected:
     output_from_brain = (this->m_brain).activate(input_to_brain);
 
     this->m_velocity = std::abs(output_from_brain[0]);
-    this->m_state.angle += dt * M_PI * output_from_brain[1];
+    this->m_state.angle += params.dt * M_PI * output_from_brain[1];
     this->m_state.angle = std::fmod(this->m_state.angle, 2 * M_PI);
   }
 };
@@ -355,7 +361,9 @@ public:
 
   virtual void start_of_round() override {
     m_internal_clock = 0;
-    m_fitness = 1000;
+    m_fitness = 0;
+    m_consumed_food.clear();
+    m_velocity = 0;
   }
 
   virtual std::string specific_informations() const override {
@@ -366,15 +374,18 @@ public:
   }
 
 protected:
-  virtual void update_angle_and_velocity(std::vector<PositionAngle>,
-                                         double dt) override {
+  virtual void
+  update_angle_and_velocity(std::vector<PositionAngle>,
+                            ExperimentParameters const &params) override {
     // FIXME: we actually don't need the predators
-    m_internal_clock += dt;
+    m_internal_clock += params.dt;
     std::array<double, 2> output_from_brain;
-    output_from_brain = (this->m_brain).activate({m_internal_clock});
+    output_from_brain =
+        (this->m_brain)
+            .activate({m_internal_clock / params.generation_duration});
 
     this->m_velocity = std::abs(output_from_brain[0]);
-    this->m_state.angle += dt * M_PI * output_from_brain[1];
+    this->m_state.angle += M_PI * output_from_brain[1];
     this->m_state.angle = std::fmod(this->m_state.angle, 2 * M_PI);
   }
 };

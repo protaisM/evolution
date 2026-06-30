@@ -96,28 +96,31 @@ public:
 
   void mutate() {
     // small mutation
-    if (rand_0_1() < 0.9) {
-      change_connection_weight(0.05);
+    if (rand_0_1() < 0.8) {
+      change_connection_weight(0.005);
       mutate_random_node(0.05);
     }
     // sometimes, big ones
     if (rand_0_1() < 0.1) {
-      change_connection_weight(0.5);
+      change_connection_weight(0.05);
       mutate_random_node(0.5);
     }
 
     // topological mutations
-    if (rand_0_1() < 0.04) {
+    if (rand_0_1() < 0.03) {
       add_random_connection();
     }
-    if (rand_0_1() < 0.02) {
+    if (rand_0_1() < 0.01) {
       toggle_random_connection();
     }
-    if (rand_0_1() < 0.02) {
+    if (rand_0_1() < 0.01) {
       add_random_node();
     }
     check_connections(); // safety
   }
+
+  unsigned int nb_nodes() const { return m_nodes.size(); }
+  unsigned int nb_connections() const { return m_connections.size(); }
 
 private:
   void check_connections() const { // debug
