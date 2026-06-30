@@ -14,9 +14,7 @@
 
 class ExperimentController;
 
-template <typename Player> class IExperiment {};
-
-template <typename Mouse> class Experiment : public IExperiment<Mouse> {
+template <typename Mouse> class Experiment {
 private:
   Logger *const m_logger;
   std::unique_ptr<ExperimentRules<Mouse>> m_experiment_rules;
@@ -102,17 +100,16 @@ private:
   }
 
   void send_to_logger() {
-    double avg_fitness = 0;
-    double max_fitness = 0;
+
+    std::vector<double> fitness;
+    std::vector<double> brain_connection;
+    std::vector<double> brain_nodes;
     for (Mouse const &mouse : m_mice) {
-      avg_fitness += mouse.get_fitness() / m_params.maximal_mice_number;
-      if (mouse.get_fitness() > max_fitness) {
-        max_fitness = mouse.get_fitness();
-      }
+      fitness.push_back(mouse.get_fitness());
+      brain_connection.push_back(mouse.get_connections_number());
+      brain_nodes.push_back(mouse.get_nodes_number());
     }
-    m_logger->store(
-        m_params.generation, m_params.time / m_params.generation_duration,
-        (double)m_params.nb_alive_mice / (double)m_params.maximal_mice_number,
-        max_fitness);
+    m_logger->store(m_params.generation, fitness, brain_connection,
+                    brain_nodes);
   }
 };

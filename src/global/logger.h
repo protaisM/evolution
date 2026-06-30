@@ -9,45 +9,64 @@
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Window.hpp>
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
+#include <numeric>
 #include <string>
 #include <vector>
+
+void normalise(std::vector<double> &q) {
+  double max = *std::max_element(q.begin(), q.end());
+  for (double &e : q) {
+    e /= max;
+  }
+}
 
 class Logger {
 private:
   std::string m_file;
+  sf::Font m_font;
 
-  // beginning of the day
   std::vector<unsigned int> m_generation_number;
-
-  // end of the day
-  std::vector<double> m_generation_duration; // in [0,1]
-  std::vector<double> m_survival_rate;       // in [0,1]
   std::vector<double> m_avg_fitness;
+  std::vector<double> m_max_fitness;
+  std::vector<double> m_min_fitness;
+  std::vector<double> m_avg_brain_connections;
+  std::vector<double> m_avg_brain_nodes;
 
 public:
-  Logger(std::string title) { m_file = title; }
-  void store(unsigned int generation_number, double generation_duration,
-             double survival_rate, double avg_fitness) {
+  Logger(std::string title) {
+    m_file = title;
+    m_font.loadFromFile("UbuntuMono-R.ttf");
+  }
+  void store(unsigned int generation_number, std::vector<double> const &fitness,
+             std::vector<double> const &brain_connections,
+             std::vector<double> const &brain_nodes) {
+
     m_generation_number.push_back(generation_number);
-    if (generation_duration > 1) {
-      generation_duration = 1;
-    }
-    if (survival_rate > 1) {
-      survival_rate = 1;
-    }
-    m_generation_duration.push_back(generation_duration);
-    m_survival_rate.push_back(survival_rate);
-    m_avg_fitness.push_back(avg_fitness);
+
+    m_max_fitness.push_back(*std::max_element(fitness.begin(), fitness.end()));
+    m_max_fitness.push_back(*std::min_element(fitness.begin(), fitness.end()));
+    m_avg_fitness.push_back(std::accumulate(fitness.begin(), fitness.end(), 0) /
+                            (double)fitness.size());
+    m_avg_brain_connections.push_back(
+        std::accumulate(brain_connections.begin(), brain_connections.end(), 0) /
+        (double)brain_connections.size());
+    m_avg_brain_nodes.push_back(
+        std::accumulate(brain_nodes.begin(), brain_nodes.end(), 0) /
+        (double)brain_nodes.size());
   }
 
   void write_to_file() {
     nlohmann::json json_struct;
-    json_struct["generations"] = m_generation_number;
-    json_struct["duration"] = m_generation_duration;
-    json_struct["survival_rate"] = m_survival_rate;
+    json_struct["generation"] = m_generation_number;
+    json_struct["max_fitness"] = m_max_fitness;
+    json_struct["min_fitness"] = m_min_fitness;
+    json_struct["avg_fitness"] = m_avg_fitness;
+    json_struct["brain_connections"] = m_avg_brain_connections;
+    json_struct["brain_nodes"] = m_avg_brain_nodes;
     std::ofstream os(m_file + ".json");
     os << std::setw(4) << json_struct << std::endl;
   }
@@ -55,21 +74,18 @@ public:
   void plot(sf::RenderWindow *window, sf::Vector2f offset, sf::Vector2f size) {
     unsigned int nb_plots = 6;
     float height_per_plot = size.y / nb_plots;
+
     float offset_height = 0;
-    plot_quantity(window, m_survival_rate, "Survival rate",
+    plot_quantity(window, m_avg_fitness, "Average fitness",
                   {offset.x, offset.y + offset_height},
                   {size.x, height_per_plot});
     offset_height = height_per_plot;
-    // plot_quantity(window, m_generation_duration, "Generation duration",
-    //               {offset.x, offset.y + offset_height},
-    //               {size.x, height_per_plot});
-    // offset_height += height_per_plot;
-    std::vector<double> fitness_to_plot;
-    for (unsigned int i = 0; i < m_avg_fitness.size(); i++) {
-      // std::cout << m_avg_fitness[i] << std::endl;
-      fitness_to_plot.push_back(m_avg_fitness[i] / 100);
-    }
-    plot_quantity(window, fitness_to_plot, "Average fitness",
+    plot_quantity(window, m_avg_brain_nodes, "Average number of nodes",
+                  {offset.x, offset.y + offset_height},
+                  {size.x, height_per_plot});
+
+    offset_height += height_per_plot;
+    plot_quantity(window, m_avg_brain_connections, "Average number of connections",
                   {offset.x, offset.y + offset_height},
                   {size.x, height_per_plot});
   }
@@ -85,15 +101,13 @@ private:
     background.setFillColor(sf::Color(100.0f, 100.0f, 100.0f));
     window->draw(background);
 
-    sf::Font font;
-    font.loadFromFile("UbuntuMono-R.ttf");
-
     sf::Text legend;
-    legend.setFont(font);
+    legend.setFont(m_font);
     legend.setString(" " + text_legend);
     legend.setFillColor(sf::Color::White);
     legend.setPosition(offset);
     legend.setCharacterSize(20);
+    window->draw(legend);
 
     // line around the plot
     sf::Color outline_color = sf::Color::Blue;
@@ -103,12 +117,14 @@ private:
         sf::Vertex(offset + size, outline_color),
         sf::Vertex(offset + sf::Vector2f({0.0f, size.y}), outline_color),
         sf::Vertex(offset, outline_color)};
+    window->draw(lines, 5, sf::LinesStrip);
 
-    unsigned int nb_data_point = quantity.size() - 1;
-    // std::cout << nb_data_point << std::endl;
-    if (nb_data_point < 2) {
+    if (quantity.size() == 0) {
       return;
     }
+
+    unsigned int nb_data_point = quantity.size() - 1;
+    normalise(quantity);
 
     double zoom_width = size.x / (nb_data_point - 1);
     zoom_width = std::min(zoom_width, 10.);
@@ -123,7 +139,5 @@ private:
       }
       window->draw(graph);
     }
-    window->draw(legend);
-    window->draw(lines, 5, sf::LinesStrip);
   }
 };
