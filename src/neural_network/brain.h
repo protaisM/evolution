@@ -97,8 +97,8 @@ public:
   void mutate() {
     // small mutation
     if (rand_0_1() < 0.8) {
-      change_connection_weight(0.005);
-      mutate_random_node(0.05);
+      change_connection_weight(0.01);
+      mutate_random_node(0.01);
     }
     // sometimes, big ones
     if (rand_0_1() < 0.1) {
@@ -107,13 +107,13 @@ public:
     }
 
     // topological mutations
-    if (rand_0_1() < 0.03) {
+    if (rand_0_1() < 0.05) {
       add_random_connection();
     }
     if (rand_0_1() < 0.01) {
       toggle_random_connection();
     }
-    if (rand_0_1() < 0.01) {
+    if (rand_0_1() < 0.02) {
       add_random_node();
     }
     check_connections(); // safety
@@ -243,11 +243,8 @@ private:
   }
 
   void change_connection_weight(double factor) {
-    for (Connection &c : m_connections) {
-      if (rand_0_1() < 0.1) {
-        c.mutate(factor);
-      }
-    }
+    unsigned int c = rnd_connection_idx();
+    m_connections[c].mutate(factor);
   }
 
   void mutate_random_node(double factor) {

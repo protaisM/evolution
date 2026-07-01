@@ -49,18 +49,16 @@ public:
       }
       bool outside_the_map = !mouse.advance(m_params, predators_states);
       if (outside_the_map) {
-        mouse.add_to_fitness(-1);
+        mouse.spend_time_outside_map(m_params.dt);
       }
       for (std::unique_ptr<Predator> const &predator : m_level.m_predators) {
         if (predator->is_in_predator(mouse.get_position())) {
-          mouse.add_to_fitness(-1);
+          mouse.spend_time_in_predator(m_params.dt);
         }
       }
       for (Food const &food : m_level.m_food) {
         if (food.can_eat(mouse.get_position())) {
-          if (mouse.consumes(food.get_id())) {
-            mouse.add_to_fitness(10);
-          }
+          mouse.consumes(food.get_id());
         }
       }
     }

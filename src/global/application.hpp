@@ -34,7 +34,7 @@ public:
 
     ExperimentParameters params;
     params.maximal_mice_number = 1000;
-    params.generation_duration = 10;
+    params.generation_duration = 5;
     params.dt = 0.005;
     params.generation = 0;
     params.time = 0;

@@ -36,7 +36,7 @@ int main() {
     std::cout << x << " -> " << y[0] << '\n';
   }
 
-  Application<TimeRobot, 1000> simu("Test simu");
+  Application<TimeRobot> simu("Test simu");
   simu.run();
 
   return 0;

@@ -21,6 +21,7 @@ void normalise(std::vector<double> &q) {
   double max = *std::max_element(q.begin(), q.end());
   for (double &e : q) {
     e /= max;
+    e *= 0.5;
   }
 }
 

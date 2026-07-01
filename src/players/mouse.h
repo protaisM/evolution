@@ -16,6 +16,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -28,6 +29,7 @@ protected:
   update_angle_and_velocity(std::vector<PositionAngle> predators_states,
                             ExperimentParameters const &params) = 0;
   virtual void start_of_round() = 0;
+  virtual double get_fitness() const = 0;
 
   virtual std::string specific_informations() const = 0;
   //---------------------------------------------------------------//
@@ -46,14 +48,15 @@ protected:
 
   // food related
   unsigned int m_nb_lifes = 1;
-  std::vector<unsigned int> m_consumed_food;
+  std::set<unsigned int> m_consumed_food;
 
-  double m_fitness;
+  double m_time_spent_in_predator;
+  double m_time_spent_outside_map;
 
 public:
   BaseMouse(Map *map)
       : m_brain(3), m_map(map), m_state({map->rnd_position(), rand_angle()}),
-        m_velocity(0), m_is_alive(true), m_fitness(0) {
+        m_velocity(0), m_is_alive(true) {
     m_sight_radius = rand_0_1();
   }
 
@@ -64,17 +67,18 @@ public:
   }
   std::size_t get_nodes_number() const { return m_brain.nb_nodes(); }
   Position get_position() const { return m_state.position; }
-  double get_fitness() const { return m_fitness; }
   void set_position(Position const &pos) { m_state.position = pos; }
   double get_angle() const { return m_state.angle; }
   void set_angle(double angle) { m_state.angle = std::fmod(angle, 2 * M_PI); }
   bool is_alive() const { return m_is_alive; }
-  void add_to_fitness(double x) { m_fitness += x; }
 
   bool has_consumed(unsigned int id) {
     return std::find(m_consumed_food.begin(), m_consumed_food.end(), id) !=
            m_consumed_food.end();
   }
+
+  void spend_time_in_predator(double dt) { m_time_spent_in_predator += dt; }
+  void spend_time_outside_map(double dt) { m_time_spent_outside_map += dt; }
 
   bool kill() {
     std::cout << "kill a mouse " << std::endl;
@@ -100,7 +104,7 @@ public:
     if (has_consumed(id)) {
       return false;
     }
-    m_consumed_food.push_back(id);
+    m_consumed_food.insert(id);
     return true;
   }
 
@@ -359,18 +363,24 @@ public:
 
   TimeRobot() : BaseMouse<1, 2>(), m_internal_clock(0.0) {}
 
-  virtual void start_of_round() override {
+  void start_of_round() override {
     m_internal_clock = 0;
-    m_fitness = 0;
     m_consumed_food.clear();
     m_velocity = 0;
+    m_time_spent_outside_map = 0;
+    m_time_spent_in_predator = 0;
   }
 
-  virtual std::string specific_informations() const override {
+  std::string specific_informations() const override {
     std::string result;
     result += "I am a time robot!\n";
     result += "My internal clock is " + std::to_string(m_internal_clock);
     return result;
+  }
+
+  double get_fitness() const override {
+    return -m_time_spent_outside_map - m_time_spent_in_predator +
+           m_consumed_food.size();
   }
 
 protected:
